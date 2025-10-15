@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Literal, List
+from typing import Literal, List, Dict, Optional
 
 class IdeaCard(BaseModel):
     dish: str
@@ -8,8 +8,8 @@ class IdeaCard(BaseModel):
     production_difficulty: int  # 0..5
     culinary_complexity: int    # 0..5
     estimated_cost: float
-    seasonality: str | None
-    inspiration: List[dict]
+    seasonality: Optional[str] = None
+    inspiration: List[Dict]
     hooks: List[str]
     cta: List[str]
 
@@ -22,10 +22,7 @@ def curate_stub() -> IdeaCard:
         culinary_complexity=2,
         estimated_cost=3.50,
         seasonality="spring",
-        inspiration=[{"url":"https://example.com/omelette", "quoted":"Classic French technique with chives."}],
-        hooks=[
-            "The 10-second French omelette test",
-            "Your pan is too hot — fix it like this"
-        ],
-        cta=["Save for breakfast tomorrow", "Try with fines herbes tonight"]
+        inspiration=[{"url":"https://example.com/omelette","quoted":"Classic French technique with chives."}],
+        hooks=["The 10-second French omelette test","Your pan is too hot — fix it like this"],
+        cta=["Save for breakfast tomorrow","Try with fines herbes tonight"]
     )
