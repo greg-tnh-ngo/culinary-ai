@@ -59,6 +59,7 @@ class Video(Base):
     approved_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
     release_packet: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONB, nullable=True)
     feedback: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    idea_draft: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONB, nullable=True)
 
     scripts: Mapped[list[Script]] = relationship("Script", back_populates="video")
 

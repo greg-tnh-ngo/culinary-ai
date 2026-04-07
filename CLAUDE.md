@@ -73,7 +73,11 @@ Each agent lives in `services/agents/<name>/main.py` and exposes a single public
 - `julien` — live: calls `claude-haiku` to generate `IdeaCard`; stubs if no API key
 - `marcel` — live: calls `claude-sonnet-4-6` for TUTORIAL + PERSONAL scripts; includes structured `verification` (temps, ratios, claims); JSON retry loop on parse failure
 - `camille` — live: prop catalog + stage-direction shotlist extraction; optional `claude-haiku` prop enrichment; stubs if no API key
-- `armand`, `colette`, `etienne`, `lucien`, `pierre` — empty stubs, not yet implemented
+- `pierre` — editing directive (`EditDirective`), texture inserts, transition notes, haiku
+- `colette` — culinary QC (`QCResult`), release packet (`ReleasePacket`), platform assets, sonnet, `tracked_create` wired
+- `armand` — grocery list (`GroceryList`), budget planning, haiku
+- `etienne` — weekly analytics report (`WeeklyReport`), haiku
+- `lucien` — cross-platform adaptation (`PlatformPacket`), TikTok + Instagram variants, haiku
 
 **API endpoints:**
 - `GET /health`
@@ -119,6 +123,7 @@ Each agent lives in `services/agents/<name>/main.py` and exposes a single public
 | `e5f6a7b8c9d0` | `add_video_metrics.py` | `video_metrics` table |
 | `f6a7b8c9d0e1` | `add_script_chapters.py` | `chapters` JSONB on `scripts` |
 | `a8b9c0d1e2f3` | `add_observability_tables.py` | `llm_calls`, `request_log` |
+| `b7c8d9e0f1a2` | `add_idea_draft_to_videos.py` | `idea_draft` JSONB nullable on `videos` |
 
 ## What was completed (Weeks 1–11)
 
@@ -142,47 +147,18 @@ Each agent lives in `services/agents/<name>/main.py` and exposes a single public
 - try/except on all critical endpoints; raw exceptions never exposed to clients
 
 **Dashboard (`apps/dashboard/index.html`):**
-- 7 read-only cards: budget, pipeline status, production queue, weekly insights, grocery list, LLM costs, SLO health
-- Vanilla JS, fetch API, dark theme
+- 7 interactive tabs: Overview (read-only cards), Videos (Kanban), Ingredients CRUD, Recipes CRUD, Grocery planner, Analytics (Chart.js), Agents panel
+- Vanilla JS, fetch API, dark theme, native `<dialog>` modals, localStorage tab persistence, toast notifications
 
 **Tests:** 46 total — `test_agents.py` (28), `test_observability.py` (4), `test_hardening.py` (14)
 
 ## Tasks remaining for next session
 
-### Week 12: Scale polish
-- Lucien agent — cross-platform adaptation (TikTok, IG Reels) from release packet
-- Parallelise agent calls within the pipeline where dependencies allow
-- Batch pipeline: queue N ideas and run sequentially overnight
-- Target: ≤15 min active human time per short video
-
-### Week 13+: Interactive Dashboard (UX overhaul) — HIGH PRIORITY
-The current `apps/dashboard/index.html` is **read-only**. The user wants a fully interactive management app. This is the top priority for the next session after Week 12.
-
-**Required capabilities:**
-1. **Video pipeline board** — Kanban by status (IDEA→PUBLISHED). Click card to open detail. Button to advance status, calling `POST /videos/{id}/approve` or status-advance endpoint.
-2. **Approve / Request changes** — Per-video approve button + rejection flow with feedback text field → `POST /videos/{id}/request-changes`.
-3. **Script viewer** — Show TUTORIAL and PERSONAL variants inline. "Regenerate" button re-runs Marcel.
-4. **Agent controls panel** — Per-agent: last run, token count, enable/disable toggle (kill switch), cost this week.
-5. **Ingredient CRUD** — Add, edit, delete ingredients with name, price, stock, unit. Missing endpoints: `DELETE /armand/ingredients/{id}`, `PUT /armand/ingredients/{id}`.
-6. **Recipe CRUD** — Create/edit/delete recipes and link ingredients. Missing endpoints: `DELETE /armand/recipes/{id}`, `PUT /armand/recipes/{id}`.
-7. **Grocery planner** — Pick recipes for the week, see budget impact, generate shopping list.
-8. **Analytics view** — Per-video stats, retention %, views chart (Chart.js).
-9. **Observability panel** — SLO dots, cost bars, latency table. Already works, needs interactivity (date range picker, refresh button).
-
-**Missing API endpoints to add in that session:**
-- `DELETE /armand/ingredients/{id}`
-- `PUT /armand/ingredients/{id}`
-- `DELETE /armand/recipes/{id}`
-- `PUT /armand/recipes/{id}`
-- `PUT /videos/{id}/status` — force-set status (for admin override)
-- `POST /ideas/save` — save a draft idea without running the full pipeline
-
-**Design constraints:**
-- Keep single `apps/dashboard/index.html` — no build step, no framework
-- Vanilla JS + fetch — all data from existing FastAPI endpoints
-- Dark theme, system-ui font — continue and deepen the current aesthetic
-- Every list item must be actionable — no dead ends
-- Mobile-friendly (creator works on their phone)
+### Week 14+: Future enhancements
+- Targeted script regeneration: `POST /videos/{id}/regenerate-scripts` — re-run Marcel only without a full pipeline run
+- langgraph DAG orchestration (IdeaFlow, PostFlow, BudgetFlow) — not yet wired
+- Celery background job queue — not yet wired
+- Qdrant vector DB for brand-voice style memory — not yet wired
 
 ## Runbooks
 

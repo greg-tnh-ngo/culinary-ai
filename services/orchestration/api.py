@@ -2,6 +2,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import PlainTextResponse, HTMLResponse
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import time as _time
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
@@ -37,14 +38,20 @@ from services.shared.repo import (
     save_release_packet,
     approve_video,
     request_changes,
+    force_set_video_status,
+    save_idea_draft,
     save_video_metric,
     get_video_metrics,
     get_video,
     list_videos,
     list_ingredients,
     create_ingredient,
+    update_ingredient,
+    delete_ingredient,
     list_recipes,
     create_recipe,
+    update_recipe,
+    delete_recipe,
     add_recipe_ingredient,
     get_recipe_with_ingredients,
     get_or_create_ledger_week,
@@ -102,6 +109,53 @@ class IngredientCreate(BaseModel):
         if v is not None and v < 0:
             raise ValueError("avg_price_per_unit must not be negative")
         return v
+
+
+class IngredientUpdate(BaseModel):
+    name: Optional[str] = None
+    category: Optional[str] = None
+    unit: Optional[str] = None
+    avg_price_per_unit: Optional[float] = None
+
+    @field_validator("avg_price_per_unit")
+    @classmethod
+    def _check_price(cls, v):
+        if v is not None and v < 0:
+            raise ValueError("avg_price_per_unit must not be negative")
+        return v
+
+
+class RecipeUpdate(BaseModel):
+    title: Optional[str] = None
+    difficulty: Optional[int] = None
+    time_required_minutes: Optional[int] = None
+    stream: Optional[str] = None
+    ingredients: Optional[List[dict]] = None  # if provided, replaces all
+
+
+class VideoStatusOverride(BaseModel):
+    status: str
+
+
+class IdeaSave(BaseModel):
+    model_config = {"extra": "allow"}
+    title: str
+    stream: Optional[str] = "SHORT"
+
+
+class BatchRunRequest(BaseModel):
+    count: int = 3
+    stream: str = "SHORT"
+
+    @field_validator("count")
+    @classmethod
+    def _check_count(cls, v: int) -> int:
+        if not (1 <= v <= 10):
+            raise ValueError("count must be between 1 and 10")
+        return v
+
+
+_POOL = ThreadPoolExecutor(max_workers=5)
 
 
 def _validate_uuid(value: str, field: str = "id") -> str:
@@ -262,6 +316,51 @@ def pipeline_long_run():
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+def _run_single_pipeline(stream: str) -> dict:
+    """Run one complete pipeline synchronously. Executed in a thread pool for batch runs."""
+    idea = curate_stub().model_dump()
+    scripts = [s.model_dump() for s in write_scripts(idea, stream=stream)]
+    tutorial_body = next((s["body"] for s in scripts if s["variant"] == "TUTORIAL"), scripts[0]["body"])
+    shoot = make_shoot_card(tutorial_body).model_dump()
+    video_id = create_video(title=idea.get("title", "Untitled"), stream=stream)
+    for s in scripts:
+        save_script(
+            video_id=video_id,
+            variant=s["variant"],
+            body=s["body"],
+            verification=s.get("verification"),
+            chapters=s.get("chapters"),
+        )
+    update_video_status(video_id, "SCRIPT")
+    run_id = save_pipeline_run(stream, idea, scripts, shoot)
+    return {"video_id": video_id, "run_id": run_id, "title": idea.get("title", "Untitled")}
+
+
+@app.post("/pipeline/batch/run")
+async def pipeline_batch_run(body: BatchRunRequest):
+    try:
+        loop = asyncio.get_running_loop()
+        tasks = [
+            loop.run_in_executor(_POOL, _run_single_pipeline, body.stream)
+            for _ in range(body.count)
+        ]
+        outcomes = await asyncio.gather(*tasks, return_exceptions=True)
+        results, succeeded, failed = [], 0, 0
+        for outcome in outcomes:
+            if isinstance(outcome, Exception):
+                failed += 1
+                _log.error("Batch pipeline run failed: %s", outcome)
+            else:
+                results.append(outcome)
+                succeeded += 1
+        return {"results": results, "succeeded": succeeded, "failed": failed}
+    except HTTPException:
+        raise
+    except Exception:
+        _log.exception("Error in pipeline_batch_run")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @app.get("/pipeline/run/{run_id}")
 def pipeline_get(run_id: int):
     row = get_pipeline_run(run_id)
@@ -342,6 +441,30 @@ def video_request_changes(video_id: str, body: ChangesRequest):
     return {"video_id": video_id, "status": "SCRIPT", "feedback": body.feedback}
 
 
+@app.put("/videos/{video_id}/status")
+def video_force_status(video_id: str, body: VideoStatusOverride):
+    from services.shared.models import VideoStatus
+    _validate_uuid(video_id, "video_id")
+    valid_statuses = [s.value for s in VideoStatus]
+    if body.status not in valid_statuses:
+        raise HTTPException(status_code=422, detail=f"status must be one of {valid_statuses}")
+    video = get_video(video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="video not found")
+    force_set_video_status(video_id, body.status)
+    return {"video_id": video_id, "status": body.status}
+
+
+@app.post("/ideas/save")
+def ideas_save(body: IdeaSave):
+    try:
+        video_id = save_idea_draft(body.model_dump())
+        return {"video_id": video_id, "status": "IDEA", "title": body.title}
+    except Exception:
+        _log.exception("Error saving idea draft")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 # ── Armand: ingredients ───────────────────────────────────────────────────────
 
 @app.get("/armand/ingredients")
@@ -353,6 +476,28 @@ def armand_list_ingredients():
 def armand_create_ingredient(body: IngredientCreate):
     ingredient_id = create_ingredient(body.name, body.category, body.unit, body.avg_price_per_unit)
     return {"id": ingredient_id, "name": body.name}
+
+
+@app.put("/armand/ingredients/{ingredient_id}")
+def armand_update_ingredient(ingredient_id: str, body: IngredientUpdate):
+    _validate_uuid(ingredient_id, "ingredient_id")
+    updated = update_ingredient(ingredient_id, **body.model_dump(exclude_none=True))
+    if not updated:
+        raise HTTPException(status_code=404, detail="ingredient not found")
+    return updated
+
+
+@app.delete("/armand/ingredients/{ingredient_id}")
+def armand_delete_ingredient(ingredient_id: str):
+    _validate_uuid(ingredient_id, "ingredient_id")
+    try:
+        deleted = delete_ingredient(ingredient_id)
+    except Exception:
+        _log.exception("Error deleting ingredient")
+        raise HTTPException(status_code=409, detail="ingredient is referenced by one or more recipes")
+    if not deleted:
+        raise HTTPException(status_code=404, detail="ingredient not found")
+    return {"deleted": True, "id": ingredient_id}
 
 
 # ── Armand: recipes ───────────────────────────────────────────────────────────
@@ -377,6 +522,24 @@ def armand_get_recipe(recipe_id: str):
     if not row:
         raise HTTPException(status_code=404, detail="recipe not found")
     return row
+
+
+@app.put("/armand/recipes/{recipe_id}")
+def armand_update_recipe(recipe_id: str, body: RecipeUpdate):
+    _validate_uuid(recipe_id, "recipe_id")
+    updated = update_recipe(recipe_id, **body.model_dump(exclude_none=True))
+    if not updated:
+        raise HTTPException(status_code=404, detail="recipe not found")
+    return updated
+
+
+@app.delete("/armand/recipes/{recipe_id}")
+def armand_delete_recipe(recipe_id: str):
+    _validate_uuid(recipe_id, "recipe_id")
+    deleted = delete_recipe(recipe_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="recipe not found")
+    return {"deleted": True, "id": recipe_id}
 
 
 # ── Armand: week planning ─────────────────────────────────────────────────────

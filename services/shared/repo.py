@@ -143,6 +143,33 @@ def request_changes(video_id: str, feedback: str) -> None:
             session.commit()
 
 
+def force_set_video_status(video_id: str, status: str) -> bool:
+    with SessionLocal() as session:
+        row = session.get(Video, video_id)
+        if not row:
+            return False
+        row.status = status
+        session.commit()
+        return True
+
+
+def save_idea_draft(idea: dict) -> str:
+    def _run():
+        with SessionLocal() as session:
+            row = Video(
+                id=str(uuid.uuid4()),
+                title=idea.get("title", "Draft"),
+                stream=idea.get("stream", "SHORT"),
+                status=VideoStatus.IDEA,
+                idea_draft=idea,
+            )
+            session.add(row)
+            session.commit()
+            session.refresh(row)
+            return row.id
+    return with_retry(_run)
+
+
 def list_videos() -> list[dict]:
     with SessionLocal() as session:
         rows = session.query(Video).order_by(Video.created_at.desc()).all()
@@ -223,6 +250,42 @@ def upsert_ingredient_price(ingredient_id: str, avg_price: float) -> None:
             session.commit()
 
 
+def update_ingredient(ingredient_id: str, **fields) -> dict | None:
+    with SessionLocal() as session:
+        row = session.get(Ingredient, ingredient_id)
+        if not row:
+            return None
+        if "name" in fields:
+            row.name = fields["name"]
+        if "category" in fields:
+            row.category = fields["category"]
+        if "unit" in fields:
+            row.unit = fields["unit"]
+        if "avg_price_per_unit" in fields and fields["avg_price_per_unit"] is not None:
+            row.avg_price_per_unit = Decimal(str(fields["avg_price_per_unit"]))
+        session.commit()
+        session.refresh(row)
+        return {
+            "id": row.id,
+            "name": row.name,
+            "category": row.category,
+            "unit": row.unit,
+            "avg_price_per_unit": float(row.avg_price_per_unit) if row.avg_price_per_unit else None,
+            "current_qty": float(row.current_qty),
+            "expiry_date": row.expiry_date.isoformat() if row.expiry_date else None,
+        }
+
+
+def delete_ingredient(ingredient_id: str) -> bool:
+    with SessionLocal() as session:
+        row = session.get(Ingredient, ingredient_id)
+        if not row:
+            return False
+        session.delete(row)
+        session.commit()
+        return True
+
+
 # ── Armand: recipes ───────────────────────────────────────────────────────────
 
 def list_recipes() -> list[dict]:
@@ -250,6 +313,40 @@ def add_recipe_ingredient(recipe_id: str, ingredient_id: str, qty: float | None)
         )
         session.add(row)
         session.commit()
+
+
+def update_recipe(recipe_id: str, **fields) -> dict | None:
+    with SessionLocal() as session:
+        row = session.get(Recipe, recipe_id)
+        if not row:
+            return None
+        for f in ("title", "difficulty", "time_required_minutes", "stream"):
+            if f in fields:
+                setattr(row, f, fields[f])
+        if "ingredients" in fields and fields["ingredients"] is not None:
+            session.query(RecipeIngredient).filter(RecipeIngredient.recipe_id == recipe_id).delete()
+            for ing in fields["ingredients"]:
+                ri = RecipeIngredient(
+                    recipe_id=recipe_id,
+                    ingredient_id=ing["ingredient_id"],
+                    qty=Decimal(str(ing["qty"])) if ing.get("qty") is not None else None,
+                )
+                session.add(ri)
+        session.commit()
+        session.refresh(row)
+        return {"id": row.id, "title": row.title, "difficulty": row.difficulty,
+                "time_required_minutes": row.time_required_minutes, "stream": row.stream}
+
+
+def delete_recipe(recipe_id: str) -> bool:
+    with SessionLocal() as session:
+        row = session.get(Recipe, recipe_id)
+        if not row:
+            return False
+        session.query(RecipeIngredient).filter(RecipeIngredient.recipe_id == recipe_id).delete()
+        session.delete(row)
+        session.commit()
+        return True
 
 
 def get_recipe_with_ingredients(recipe_id: str) -> dict | None:

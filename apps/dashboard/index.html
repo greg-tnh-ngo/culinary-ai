@@ -5,280 +5,1469 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Culinary AI — Dashboard</title>
   <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #222;
+      --border: #2a2a2a;
+      --accent: #818cf8;
+      --accent-dim: #4f46e5;
+      --text: #e8e8e8;
+      --muted: #888;
+      --muted-dark: #555;
+      --link: #60a5fa;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warn: #f59e0b;
+      --mono: ui-monospace, 'JetBrains Mono', monospace;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e8e8e8; padding: 24px; }
-    h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 24px; color: #fff; }
-    h2 { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
-         color: #888; margin-bottom: 12px; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Top bar ──────────────────────────── */
+    .topbar { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 100; }
+    .topbar-logo { font-size: 1rem; font-weight: 700; color: #fff; white-space: nowrap; }
+    .topbar-logo span { color: var(--accent); }
+
+    /* ── Tab nav ──────────────────────────── */
+    .tabnav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; }
+    .tabnav::-webkit-scrollbar { display: none; }
+    .tab-btn { padding: 6px 14px; border-radius: 999px; border: none; background: transparent; color: var(--muted); font-size: 0.82rem; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; font-family: inherit; }
+    .tab-btn:hover { background: var(--surface2); color: var(--text); }
+    .tab-btn.active { background: var(--accent); color: #fff; }
+
+    /* ── Tab panels ───────────────────────── */
+    .tab-panel { display: none; padding: 20px; }
+    .tab-panel.active { display: block; }
+
+    /* ── Cards / grid ─────────────────────── */
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-    .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 20px; }
-    .budget-bar { height: 8px; background: #2a2a2a; border-radius: 4px; margin: 12px 0; overflow: hidden; }
-    .budget-bar-fill { height: 100%; border-radius: 4px; background: #22c55e; transition: width 0.4s; }
-    .budget-bar-fill.warn { background: #f59e0b; }
-    .budget-bar-fill.over { background: #ef4444; }
-    .stat { display: flex; justify-content: space-between; font-size: 0.85rem;
-            color: #aaa; padding: 4px 0; border-bottom: 1px solid #222; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    .card-title { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 12px; }
+
+    /* ── Common elements ──────────────────── */
+    .stat { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); padding: 5px 0; border-bottom: 1px solid var(--surface2); }
     .stat:last-child { border-bottom: none; }
-    .stat span { color: #e8e8e8; font-variant-numeric: tabular-nums; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem;
-             font-weight: 600; background: #2a2a2a; color: #aaa; margin: 2px; }
-    .badge.IDEA { background: #1e3a5f; color: #60a5fa; }
-    .badge.SCRIPT { background: #1e3a2a; color: #4ade80; }
-    .badge.QC { background: #3a2a1e; color: #fb923c; }
+    .stat span { color: var(--text); font-variant-numeric: tabular-nums; }
+    .stat--total { margin-top: 8px; font-weight: 600; }
+    .stat--spaced { margin-bottom: 10px; }
+
+    /* ── Badges ───────────────────────────── */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; background: var(--border); color: #aaa; }
+    .badge.IDEA      { background: #1e3a5f; color: #60a5fa; }
+    .badge.SCRIPT    { background: #1e3a2a; color: #4ade80; }
+    .badge.SHOT      { background: #2a2a2a; color: #aaa; }
+    .badge.EDIT      { background: #2a2a2a; color: #aaa; }
+    .badge.QC        { background: #3a2a1e; color: #fb923c; }
+    .badge.READY     { background: #2a2a2a; color: #aaa; }
     .badge.SCHEDULED { background: #2a1e3a; color: #c084fc; }
     .badge.PUBLISHED { background: #1e2a1e; color: #86efac; }
-    .queue-item { padding: 8px 0; border-bottom: 1px solid #222; font-size: 0.9rem; }
+    .badge.SHORT     { background: #1e2a3a; color: #7dd3fc; }
+    .badge.LONG      { background: #2d1e3a; color: #d8b4fe; }
+
+    .loading { color: var(--muted-dark); font-size: 0.85rem; }
+    .empty { color: var(--muted); font-size: 0.85rem; padding: 12px 0; }
+
+    /* ── Buttons ──────────────────────────── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.82rem; font-weight: 500; font-family: inherit; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-danger  { background: #7f1d1d; color: #fca5a5; }
+    .btn-ghost   { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+
+    /* ── Links ────────────────────────────── */
+    .link { color: var(--link); text-decoration: none; }
+    .link:hover { text-decoration: underline; }
+
+    /* ── Utility ──────────────────────────── */
+    .hidden { display: none; }
+    .mono { font-family: var(--mono); }
+    .th-right { text-align: right; }
+    .cell-pad { padding: 16px 12px; }
+    .footer-meta { margin-top: 16px; font-size: 0.8rem; color: var(--muted-dark); }
+
+    /* ── Budget bar ───────────────────────── */
+    .budget-bar { height: 8px; background: var(--border); border-radius: 4px; margin: 10px 0; overflow: hidden; }
+    .budget-bar-fill { height: 100%; border-radius: 4px; background: var(--success); transition: width 0.4s, background-color 0.3s; }
+    .budget-bar-fill.warn { background: var(--warn); }
+    .budget-bar-fill.over { background: var(--danger); }
+
+    /* ── SLO dots ─────────────────────────── */
+    .slo-row { display: flex; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--surface2); font-size: 0.85rem; gap: 8px; }
+    .slo-row:last-child { border-bottom: none; }
+    .slo-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .slo-dot.pass { background: var(--success); }
+    .slo-dot.fail { background: var(--danger); }
+    .slo-desc { flex: 1; font-size: .85rem; }
+    .slo-val { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+
+    /* ── Agent cost bars ──────────────────── */
+    .agent-bar-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--surface2); font-size: 0.82rem; }
+    .agent-bar-row:last-child { border-bottom: none; }
+    .agent-bar-label { width: 110px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .agent-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; }
+    .agent-bar-fill  { height: 100%; border-radius: 3px; background: var(--accent); }
+    .agent-bar-cost  { width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+    .agent-bar-cost-detail { font-size: .8rem; }
+    .agent-call-count { color: var(--muted); }
+
+    /* ── Grocery rows ─────────────────────── */
+    .grocery-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--surface2); font-size: 0.85rem; }
+    .grocery-item:last-child { border-bottom: none; }
+    .item-qty { color: var(--muted-dark); }
+    .grocery-budget-header { display: flex; justify-content: space-between; font-size: .82rem; color: var(--muted); margin-bottom: 4px; }
+    .grocery-budget-bar-wrap { margin-top: 12px; }
+    .grocery-actions { margin-top: 12px; display: flex; gap: 8px; }
+
+    /* ── Kanban board ─────────────────────── */
+    .kanban { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; min-height: 400px; }
+    .kanban-col { flex: 0 0 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; }
+    .kanban-col-header { padding: 10px 12px 8px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .kanban-col-count { background: var(--border); color: var(--muted); border-radius: 999px; padding: 1px 7px; font-size: 0.7rem; }
+    .kanban-cards { padding: 8px; display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto; max-height: 600px; }
+    .kanban-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 10px; cursor: pointer; transition: border-color 0.15s; }
+    .kanban-card:hover { border-color: var(--accent); }
+    .kanban-card-title { font-size: 0.82rem; font-weight: 500; line-height: 1.3; margin-bottom: 6px; }
+    .kanban-card-meta  { font-size: 0.72rem; color: var(--muted); }
+    .kanban-col-footer { padding: 6px 8px; border-top: 1px solid var(--border); }
+    .kanban-add-btn { width: 100%; justify-content: center; color: var(--muted); border-color: transparent; background: transparent; }
+    .kanban-add-btn:hover { color: var(--text); background: var(--surface2); border-color: var(--border); opacity: 1; }
+
+    /* ── Tables ───────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 8px 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 12px; border-bottom: 1px solid var(--surface2); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .td-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .endpoint-label { font-family: var(--mono); font-size: .78rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+
+    /* ── Forms ────────────────────────────── */
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
+    .form-group--wide { flex: 2; }
+    .form-group label { font-size: 0.75rem; color: var(--muted); }
+    input[type=text], input[type=number], input[type=date], select, textarea {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: inherit; font-size: 0.85rem; padding: 7px 10px;
+      outline: none; width: 100%;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+    .input-date { width: 160px; }
+
+    /* ── Dialog (native) ──────────────────── */
+    dialog { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text); padding: 0; max-width: 640px; width: calc(100vw - 32px); max-height: calc(100vh - 80px); }
+    dialog[open] { display: flex; flex-direction: column; }
+    dialog::backdrop { background: rgba(0,0,0,0.7); }
+    .dialog-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .dialog-header h3 { font-size: 1rem; font-weight: 600; }
+    .dialog-body   { padding: 20px; overflow-y: auto; flex: 1; }
+    .dialog-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; }
+    .btn-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 4px; border-radius: 4px; }
+    .btn-close:hover { background: var(--surface2); color: var(--text); }
+    .confirm-msg { font-size: .9rem; line-height: 1.5; }
+
+    /* ── Video dialog ─────────────────────── */
+    .vd-badges { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .vd-feedback-box { margin-bottom: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: .83rem; }
+    .vd-feedback-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 4px; }
+    .vd-section { margin-bottom: 16px; }
+    .vd-section-row { display: flex; gap: 8px; align-items: center; }
+
+    /* ── Script blocks ────────────────────── */
+    .script-block { margin-bottom: 16px; }
+    .script-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
+    pre.script-body { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: inherit; font-size: 0.8rem; white-space: pre-wrap; word-break: break-word; line-height: 1.5; max-height: 250px; overflow-y: auto; }
+
+    /* ── Toast ────────────────────────────── */
+    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; font-size: 0.85rem; min-width: 200px; max-width: 320px; pointer-events: auto; display: flex; align-items: center; gap: 10px; animation: slideIn 0.2s ease; }
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.error   { border-left: 3px solid var(--danger); }
+    @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ── Section toolbar ──────────────────── */
+    .section-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    .section-title { font-size: 1.1rem; font-weight: 600; }
+
+    /* ── Analytics chart ──────────────────── */
+    #analytics-chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+    #analytics-chart { max-height: 280px; }
+
+    /* ── Overview ─────────────────────────── */
+    .queue-item { padding: 8px 0; border-bottom: 1px solid var(--surface2); font-size: 0.9rem; }
     .queue-item:last-child { border-bottom: none; }
     .queue-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .grocery-item { display: flex; justify-content: space-between; padding: 6px 0;
-                    border-bottom: 1px solid #222; font-size: 0.85rem; }
-    .grocery-item:last-child { border-bottom: none; }
-    .cost { color: #aaa; font-variant-numeric: tabular-nums; }
-    .loading { color: #555; font-size: 0.85rem; }
-    .links { margin-top: 20px; font-size: 0.8rem; color: #555; }
-    .links a { color: #60a5fa; text-decoration: none; }
-    .links a:hover { text-decoration: underline; }
-    .slo-row { display: flex; align-items: center; padding: 7px 0;
-               border-bottom: 1px solid #222; font-size: 0.85rem; }
-    .slo-row:last-child { border-bottom: none; }
-    .slo-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-right: 8px; }
-    .slo-dot.pass { background: #22c55e; }
-    .slo-dot.fail { background: #ef4444; }
-    .slo-label { flex: 1; }
-    .slo-value { color: #aaa; font-variant-numeric: tabular-nums; font-size: 0.8rem; }
-    .agent-bar-row { display: flex; align-items: center; gap: 8px; padding: 5px 0;
-                     border-bottom: 1px solid #222; font-size: 0.82rem; }
-    .agent-bar-row:last-child { border-bottom: none; }
-    .agent-bar-label { width: 120px; color: #aaa; white-space: nowrap; overflow: hidden;
-                       text-overflow: ellipsis; }
-    .agent-bar-track { flex: 1; height: 6px; background: #2a2a2a; border-radius: 3px; }
-    .agent-bar-fill { height: 100%; border-radius: 3px; background: #818cf8; }
-    .agent-bar-cost { width: 60px; text-align: right; color: #e8e8e8;
-                      font-variant-numeric: tabular-nums; }
+    .badge-row { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .muted-label { color: var(--muted-dark); font-weight: 400; }
+
+    /* ── Report ───────────────────────────── */
+    .insights-list { margin-bottom: 10px; }
+    .insight-row { padding: 5px 0; border-bottom: 1px solid var(--surface2); font-size: .85rem; }
+    .insight-row:last-child { border-bottom: none; }
+    .rec-row { padding: 4px 0; font-size: .8rem; color: #aaa; }
+    .section-label { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 4px; }
+    .week-label { font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+
+    /* ── Checkbox list ────────────────────── */
+    .check-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; }
+    .check-list label { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--surface2); font-size: 0.83rem; cursor: pointer; }
+    .check-list label:last-child { border-bottom: none; }
+    .check-list label:hover { background: rgba(255,255,255,0.03); }
+    .check-list input[type=number] { width: 70px; flex-shrink: 0; }
+    .ing-check-label { flex: 1; }
+    .ing-emoji { font-size: 1rem; flex-shrink: 0; width: 22px; text-align: center; }
+    .badge-shrink { flex-shrink: 0; }
+    .check-empty { color: var(--muted); padding: 10px; display: block; }
+
+    /* ══════════════════════════════════════════ */
+    /* ── Recipe cards ─────────────────────────── */
+    /* ══════════════════════════════════════════ */
+    .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+    .recipe-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; transition: border-color 0.15s, transform 0.15s; cursor: default; }
+    .recipe-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .recipe-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .recipe-card-emoji { font-size: 2.2rem; line-height: 1; }
+    .recipe-card-name { font-size: 0.95rem; font-weight: 600; line-height: 1.35; color: var(--text); }
+    .recipe-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 18px; }
+    .recipe-card-sep { color: var(--muted-dark); font-size: 0.75rem; }
+    .recipe-card-time { font-size: 0.78rem; color: var(--muted); }
+    .recipe-card-ings { display: flex; flex-wrap: wrap; gap: 5px; font-size: 1.15rem; }
+    .recipe-card-ing { cursor: default; }
+    .recipe-card-actions { display: flex; gap: 6px; padding-top: 10px; border-top: 1px solid var(--border); margin-top: auto; }
+
+    /* difficulty dots on cards */
+    .diff-dots-display { display: flex; gap: 3px; align-items: center; }
+    .diff-dot-sm { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+    .diff-dot-sm.on { background: var(--accent); }
+
+    /* ── Recipe form dialog ───────────────── */
+    .recipe-form-field { margin-bottom: 20px; }
+    .recipe-form-field:last-child { margin-bottom: 0; }
+    .recipe-field-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; display: block; }
+    .recipe-title-row { display: flex; align-items: center; gap: 12px; }
+    .recipe-form-emoji-preview { font-size: 2rem; line-height: 1; flex-shrink: 0; transition: transform 0.15s; }
+    .recipe-title-input { font-size: 1.05rem; font-weight: 500; padding: 10px 14px; flex: 1; }
+    .recipe-meta-row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .recipe-meta-field { display: flex; flex-direction: column; gap: 8px; }
+
+    /* stream pill toggle */
+    .stream-picker { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .stream-pill { padding: 6px 14px; border: none; background: transparent; color: var(--muted); font-size: 0.8rem; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s, color 0.15s; line-height: 1.4; }
+    .stream-pill + .stream-pill { border-left: 1px solid var(--border); }
+    .stream-pill.active { background: var(--accent); color: #fff; }
+    .stream-pill:hover:not(.active) { background: var(--surface2); color: var(--text); }
+
+    /* difficulty dot picker */
+    .diff-picker { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
+    .diff-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); background: transparent; cursor: pointer; transition: border-color 0.15s, background 0.15s; padding: 0; flex-shrink: 0; }
+    .diff-dot.filled { background: var(--accent); border-color: var(--accent); }
+    .diff-dot:hover { border-color: var(--accent); }
+
+    /* time input with inline unit */
+    .time-input-wrap { position: relative; display: flex; align-items: center; }
+    .time-input-wrap input { padding-right: 40px; }
+    .time-unit { position: absolute; right: 10px; color: var(--muted); font-size: 0.82rem; pointer-events: none; }
+
+    /* checklist inside recipe form */
+    .recipe-ing-list { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; }
+    .recipe-ing-list label { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--surface2); font-size: 0.83rem; cursor: pointer; }
+    .recipe-ing-list label:last-child { border-bottom: none; }
+    .recipe-ing-list label:hover { background: rgba(255,255,255,0.03); }
+    .recipe-ing-list input[type=number] { width: 70px; flex-shrink: 0; }
+
+    /* ── Responsive ───────────────────────── */
+    @media (max-width: 600px) {
+      .topbar { padding: 10px 12px; }
+      .tab-panel { padding: 14px 12px; }
+      .kanban-col { flex: 0 0 165px; }
+      dialog { border-radius: 0; max-width: 100vw; width: 100vw; max-height: 100vh; margin: 0; }
+      .form-group { min-width: 100%; }
+      .recipe-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
-  <h1>Culinary AI</h1>
 
+<div class="topbar">
+  <div class="topbar-logo">Culinary <span>AI</span></div>
+  <nav class="tabnav" id="tabnav">
+    <button class="tab-btn active" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="videos">Videos</button>
+    <button class="tab-btn" data-tab="ingredients">Ingredients</button>
+    <button class="tab-btn" data-tab="recipes">Recipes</button>
+    <button class="tab-btn" data-tab="grocery">Grocery</button>
+    <button class="tab-btn" data-tab="analytics">Analytics</button>
+    <button class="tab-btn" data-tab="agents">Agents</button>
+  </nav>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TAB 1: OVERVIEW -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-overview">
   <div class="grid">
-    <!-- LLM Cost card -->
-    <div class="card" id="cost-card">
-      <h2>LLM cost this week</h2>
-      <p class="loading">Loading…</p>
-    </div>
+    <div class="card" id="cost-card"><div class="card-title">LLM cost this week</div><p class="loading">Loading…</p></div>
+    <div class="card" id="slo-card"><div class="card-title">SLOs</div><p class="loading">Loading…</p></div>
+    <div class="card" id="budget-card"><div class="card-title">Budget</div><p class="loading">Loading…</p></div>
+    <div class="card" id="pipeline-card"><div class="card-title">Pipeline</div><p class="loading">Loading…</p></div>
+    <div class="card" id="queue-card"><div class="card-title">In production</div><p class="loading">Loading…</p></div>
+    <div class="card" id="report-card"><div class="card-title">Weekly insights</div><p class="loading">Loading…</p></div>
+    <div class="card" id="grocery-card"><div class="card-title">Grocery list</div><p class="loading">Loading…</p></div>
+  </div>
+  <div class="footer-meta">
+    <a id="api-docs-link" href="#" target="_blank" class="link">API docs</a>
+    &nbsp;·&nbsp;
+    <a id="calendar-link" href="#" class="link">Download calendar</a>
+  </div>
+</div>
 
-    <!-- SLO card -->
-    <div class="card" id="slo-card">
-      <h2>SLOs</h2>
-      <p class="loading">Loading…</p>
-    </div>
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TAB 2: VIDEOS (Kanban) — no toolbar button, idea is in IDEA column -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-videos">
+  <div class="section-toolbar">
+    <div class="section-title">Videos</div>
+  </div>
+  <div class="kanban" id="kanban-board"><p class="loading">Loading…</p></div>
+</div>
 
-    <!-- Budget card -->
-    <div class="card" id="budget-card">
-      <h2>This week's budget</h2>
-      <p class="loading">Loading…</p>
-    </div>
-
-    <!-- Pipeline card -->
-    <div class="card" id="pipeline-card">
-      <h2>Pipeline</h2>
-      <p class="loading">Loading…</p>
-    </div>
-
-    <!-- Queue card -->
-    <div class="card" id="queue-card">
-      <h2>In production</h2>
-      <p class="loading">Loading…</p>
-    </div>
-
-    <!-- Weekly insights card -->
-    <div class="card" id="report-card">
-      <h2>Weekly insights</h2>
-      <p class="loading">Loading…</p>
-    </div>
-
-    <!-- Grocery list card -->
-    <div class="card" id="grocery-card">
-      <h2>Grocery list <span id="grocery-week" style="font-weight:400;color:#555;text-transform:none;letter-spacing:0"></span></h2>
-      <p class="loading">Loading…</p>
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TAB 3: INGREDIENTS -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-ingredients">
+  <div class="section-toolbar">
+    <div class="section-title">Ingredients</div>
+    <button class="btn btn-primary" onclick="openAddIngredient()">+ Add ingredient</button>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table id="ingredients-table">
+        <thead><tr><th>Name</th><th>Category</th><th>Unit</th><th>Price/unit</th><th class="th-right">Actions</th></tr></thead>
+        <tbody><tr><td colspan="5" class="loading cell-pad">Loading…</td></tr></tbody>
+      </table>
     </div>
   </div>
+</div>
 
-  <div class="links">
-    <a href="/docs" target="_blank">API docs</a> &nbsp;·&nbsp;
-    <a href="/calendar.ics">Download calendar (.ics)</a>
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TAB 4: RECIPES — card grid, no table -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-recipes">
+  <div class="section-toolbar">
+    <div class="section-title">Recipes</div>
+    <button class="btn btn-primary" onclick="openAddRecipe()">+ New recipe</button>
   </div>
+  <div id="recipes-grid" class="recipe-grid">
+    <p class="loading">Loading…</p>
+  </div>
+</div>
 
-  <script>
-    const API = window.location.origin.includes('8000') ? '' : 'http://localhost:8000';
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TAB 5: GROCERY PLANNER -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-grocery">
+  <div class="section-toolbar">
+    <div class="section-title">Grocery planner</div>
+    <input type="date" id="grocery-week-input" class="input-date" onchange="onGroceryWeekChange()">
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">Pick recipes for the week</div>
+      <div id="recipe-checklist" class="check-list"><p class="loading">Loading…</p></div>
+      <div id="grocery-budget-bar-wrap" class="grocery-budget-bar-wrap hidden">
+        <div class="grocery-budget-header">
+          <span>Budget usage</span>
+          <span id="grocery-budget-label">—</span>
+        </div>
+        <div class="budget-bar"><div class="budget-bar-fill" id="grocery-budget-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Shopping list <span id="grocery-week-label" class="week-label"></span></div>
+      <div id="grocery-list-body"><p class="empty">Select recipes to generate list.</p></div>
+      <div class="grocery-actions">
+        <button id="grocery-download-btn" class="btn btn-ghost btn-sm" onclick="downloadGroceryList()" disabled>Download .txt</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-    function thisMonday() {
-      const d = new Date();
-      // getDay(): 0=Sun,1=Mon,...,6=Sat — roll back to most recent Monday
-      const day = d.getDay();
-      const diff = day === 0 ? -6 : 1 - day;
-      d.setDate(d.getDate() + diff);
-      // Use local date parts to avoid UTC offset shifting the day
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${dd}`;
-    }
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TAB 6: ANALYTICS -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-analytics">
+  <div class="section-toolbar">
+    <div class="section-title">Analytics</div>
+    <button class="btn btn-ghost btn-sm" onclick="loadAnalytics()">Refresh</button>
+  </div>
+  <div id="analytics-chart-wrap" class="hidden">
+    <div class="card-title">Views by video</div>
+    <canvas id="analytics-chart"></canvas>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table id="analytics-table">
+        <thead><tr><th>Title</th><th>Platform</th><th>Views</th><th>Retention %</th><th>Watch time</th><th>Likes</th></tr></thead>
+        <tbody><tr><td colspan="6" class="loading cell-pad">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-    async function loadSummary() {
-      const res = await fetch(`${API}/dashboard/summary`);
-      const d = await res.json();
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TAB 7: AGENTS -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-agents">
+  <div class="section-toolbar">
+    <div class="section-title">Agents</div>
+    <button class="btn btn-ghost btn-sm" onclick="loadAgents()">Refresh</button>
+  </div>
+  <div class="grid">
+    <div class="card" id="agents-cost-card"><div class="card-title">LLM cost this week (by agent)</div><p class="loading">Loading…</p></div>
+    <div class="card" id="agents-slo-card"><div class="card-title">SLO status</div><p class="loading">Loading…</p></div>
+    <div class="card" id="agents-latency-card"><div class="card-title">Request latency</div><p class="loading">Loading…</p></div>
+  </div>
+</div>
 
-      // Budget
-      const b = d.budget;
-      const pct = Math.min(100, (b.planned_spend / b.budget_limit) * 100);
-      const cls = pct > 100 ? 'over' : pct > 80 ? 'warn' : '';
-      document.getElementById('budget-card').innerHTML = `
-        <h2>Budget — week of ${b.week_id}</h2>
-        <div class="budget-bar"><div class="budget-bar-fill ${cls}" style="width:${pct}%"></div></div>
-        <div class="stat">Planned <span>$${b.planned_spend.toFixed(2)}</span></div>
-        <div class="stat">Actual <span>$${b.actual_spend.toFixed(2)}</span></div>
-        <div class="stat">Limit <span>$${b.budget_limit.toFixed(2)}</span></div>
-        <div class="stat">Remaining <span>$${(b.budget_limit - b.planned_spend).toFixed(2)}</span></div>
-      `;
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- DIALOGS -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
 
-      // Pipeline
-      const order = ['IDEA','SCRIPT','SHOT','EDIT','QC','READY','SCHEDULED','PUBLISHED'];
-      const badges = order.map(s => d.pipeline[s]
-        ? `<span class="badge ${s}">${s} ${d.pipeline[s]}</span>` : '').join('');
-      document.getElementById('pipeline-card').innerHTML =
-        `<h2>Pipeline</h2><div style="margin-top:4px">${badges || '<span style="color:#555">No videos yet</span>'}</div>`;
+<!-- Video detail dialog -->
+<dialog id="video-dialog">
+  <div class="dialog-header">
+    <h3 id="vd-title">Video</h3>
+    <button class="btn-close" onclick="document.getElementById('video-dialog').close()">✕</button>
+  </div>
+  <div class="dialog-body">
+    <div class="vd-badges">
+      <span id="vd-status-badge" class="badge"></span>
+      <span id="vd-stream-badge" class="badge"></span>
+    </div>
+    <div id="vd-feedback-display" class="vd-feedback-box hidden">
+      <div class="vd-feedback-label">Feedback</div>
+      <div id="vd-feedback-text"></div>
+    </div>
+    <div id="vd-scripts-section"></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+    <div class="vd-section">
+      <div class="card-title">Move to stage</div>
+      <div class="vd-section-row">
+        <select id="vd-force-status" style="flex:1">
+          <option value="">— pick a stage —</option>
+          <option>IDEA</option><option>SCRIPT</option><option>SHOT</option>
+          <option>EDIT</option><option>QC</option><option>READY</option>
+          <option>SCHEDULED</option><option>PUBLISHED</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="doForceStatus()">Apply</button>
+      </div>
+    </div>
+    <div>
+      <div class="card-title">Request changes</div>
+      <textarea id="vd-feedback-input" placeholder="Describe what needs to change…" style="margin-bottom:8px"></textarea>
+      <button class="btn btn-ghost btn-sm" onclick="doRequestChanges()">Send feedback</button>
+    </div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-ghost" onclick="document.getElementById('video-dialog').close()">Close</button>
+    <button class="btn btn-primary" id="vd-approve-btn" onclick="doApprove()">Approve (→ SCHEDULED)</button>
+  </div>
+</dialog>
 
-      // Queue
-      const items = d.queue.map(v =>
-        `<div class="queue-item"><div class="queue-title">${v.title}</div>
-         <span class="badge ${v.status}">${v.status}</span></div>`
-      ).join('');
-      document.getElementById('queue-card').innerHTML =
-        `<h2>In production</h2>${items || '<p style="color:#555;font-size:.85rem">Nothing in progress</p>'}`;
-    }
+<!-- Confirm delete dialog -->
+<dialog id="confirm-dialog">
+  <div class="dialog-header">
+    <h3 id="confirm-title">Confirm</h3>
+    <button class="btn-close" onclick="document.getElementById('confirm-dialog').close()">✕</button>
+  </div>
+  <div class="dialog-body">
+    <p id="confirm-msg" class="confirm-msg"></p>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-ghost" onclick="document.getElementById('confirm-dialog').close()">Cancel</button>
+    <button class="btn btn-danger" id="confirm-ok-btn">Delete</button>
+  </div>
+</dialog>
 
-    async function loadGrocery() {
-      const monday = thisMonday();
-      document.getElementById('grocery-week').textContent = monday;
-      try {
-        const res = await fetch(`${API}/armand/grocery-list/${monday}`);
-        const d = await res.json();
-        if (!d.items || d.items.length === 0) {
-          document.getElementById('grocery-card').innerHTML =
-            `<h2>Grocery list <small style="color:#555;font-size:.75rem;font-weight:400">${monday}</small></h2>
-             <p style="color:#555;font-size:.85rem">No shopping needed this week.</p>`;
-          return;
-        }
-        const rows = d.items.map(i =>
-          `<div class="grocery-item">
-            <span>${i.name} <small style="color:#555">${i.to_buy} ${i.unit || ''}</small></span>
-            <span class="cost">$${i.estimated_cost.toFixed(2)}</span>
-           </div>`
-        ).join('');
-        document.getElementById('grocery-card').innerHTML =
-          `<h2>Grocery list <small style="color:#555;font-size:.75rem;font-weight:400">${monday}</small></h2>
-           ${rows}
-           <div class="stat" style="margin-top:8px;font-weight:600">Total <span>$${d.total_estimated_cost.toFixed(2)}</span></div>`;
-      } catch (e) {
-        document.getElementById('grocery-card').innerHTML =
-          `<h2>Grocery list</h2><p class="loading">Could not load.</p>`;
-      }
-    }
+<!-- Add/Edit ingredient dialog -->
+<dialog id="ingredient-dialog">
+  <div class="dialog-header">
+    <h3 id="ing-dialog-title">Ingredient</h3>
+    <button class="btn-close" onclick="document.getElementById('ingredient-dialog').close()">✕</button>
+  </div>
+  <div class="dialog-body">
+    <div class="form-row">
+      <div class="form-group"><label>Name *</label><input type="text" id="ing-name"></div>
+      <div class="form-group"><label>Category</label><input type="text" id="ing-category" placeholder="produce, dairy…"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Unit</label><input type="text" id="ing-unit" placeholder="kg, L, each…"></div>
+      <div class="form-group"><label>Price per unit ($)</label><input type="number" id="ing-price" step="0.01" min="0" placeholder="0.00"></div>
+    </div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-ghost" onclick="document.getElementById('ingredient-dialog').close()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveIngredient()">Save</button>
+  </div>
+</dialog>
 
-    async function loadReport() {
-      const monday = thisMonday();
-      try {
-        const res = await fetch(`${API}/etienne/report/${monday}`);
-        const d = await res.json();
-        if (!d.insights || d.insights.length === 0) {
-          document.getElementById('report-card').innerHTML =
-            '<h2>Weekly insights</h2><p style="color:#555;font-size:.85rem">No data yet.</p>';
-          return;
-        }
-        const insightRows = d.insights.map(i =>
-          `<div style="padding:5px 0;border-bottom:1px solid #222;font-size:.85rem">${i}</div>`
-        ).join('');
-        const recRows = d.recommendations.map(r =>
-          `<div style="padding:4px 0;font-size:.8rem;color:#aaa">${r}</div>`
-        ).join('');
-        document.getElementById('report-card').innerHTML = `
-          <h2>Weekly insights <small style="color:#555;font-size:.75rem;font-weight:400">${monday}</small></h2>
-          <div style="margin-bottom:10px">${insightRows}</div>
-          <div style="color:#888;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;margin:8px 0 4px">Recommendations</div>
-          ${recRows}
-          <div class="stat" style="margin-top:8px">Views <span>${d.total_views.toLocaleString()}</span></div>
-          <div class="stat">Avg retention <span>${d.avg_retention_pct.toFixed(1)}%</span></div>
-        `;
-      } catch (e) {
-        document.getElementById('report-card').innerHTML =
-          '<h2>Weekly insights</h2><p class="loading">Could not load.</p>';
-      }
-    }
+<!-- Add/Edit recipe dialog — redesigned -->
+<dialog id="recipe-dialog">
+  <div class="dialog-header">
+    <h3 id="recipe-dialog-title">New recipe</h3>
+    <button class="btn-close" onclick="document.getElementById('recipe-dialog').close()">✕</button>
+  </div>
+  <div class="dialog-body">
 
-    async function loadCosts() {
-      try {
-        const res = await fetch(`${API}/observability/costs`);
-        const d = await res.json();
-        const total = d.total_cost_usd || 0;
-        const agents = (d.by_agent || []).sort((a, b) => b.cost_usd - a.cost_usd);
-        const maxCost = agents.reduce((m, a) => Math.max(m, a.cost_usd), 0.0001);
-        const rows = agents.length > 0
-          ? agents.map(a => {
-              const pct = Math.round((a.cost_usd / maxCost) * 100);
-              return `<div class="agent-bar-row">
-                <div class="agent-bar-label">${a.agent}</div>
-                <div class="agent-bar-track"><div class="agent-bar-fill" style="width:${pct}%"></div></div>
-                <div class="agent-bar-cost">$${a.cost_usd.toFixed(4)}</div>
-              </div>`;
-            }).join('')
-          : '<p style="color:#555;font-size:.85rem">No LLM calls recorded yet.</p>';
-        document.getElementById('cost-card').innerHTML = `
-          <h2>LLM cost this week</h2>
-          <div class="stat" style="margin-bottom:10px">Total <span>$${total.toFixed(4)}</span></div>
-          ${rows}`;
-      } catch (e) {
-        document.getElementById('cost-card').innerHTML =
-          '<h2>LLM cost this week</h2><p class="loading">Could not load.</p>';
-      }
-    }
+    <!-- Title with live emoji -->
+    <div class="recipe-form-field">
+      <label class="recipe-field-label" for="recipe-title">Recipe name</label>
+      <div class="recipe-title-row">
+        <span id="recipe-form-emoji" class="recipe-form-emoji-preview">🍽️</span>
+        <input type="text" id="recipe-title" class="recipe-title-input" placeholder="Name your dish…" oninput="updateRecipeEmoji()">
+      </div>
+    </div>
 
-    async function loadSlos() {
-      try {
-        const res = await fetch(`${API}/observability/slo`);
-        const slos = await res.json();
-        const rows = slos.map(s => {
-          const dotClass = s.passing ? 'pass' : 'fail';
-          const val = s.current_value !== null && s.current_value !== undefined
-            ? (typeof s.current_value === 'number' ? s.current_value.toLocaleString(undefined, {maximumFractionDigits: 1}) : s.current_value)
-            : '—';
-          const unit = s.unit === 'percent' ? '%' : s.unit === 'ms' ? ' ms' :
-                       s.unit === 'usd' ? ' USD' : ` ${s.unit}`;
-          return `<div class="slo-row">
-            <div class="slo-dot ${dotClass}"></div>
-            <div class="slo-label">${s.description}</div>
-            <div class="slo-value">${val}${unit}</div>
-          </div>`;
-        }).join('');
-        document.getElementById('slo-card').innerHTML = `<h2>SLOs</h2>${rows}`;
-      } catch (e) {
-        document.getElementById('slo-card').innerHTML =
-          '<h2>SLOs</h2><p class="loading">Could not load.</p>';
-      }
-    }
+    <!-- Stream + Time + Difficulty in one row -->
+    <div class="recipe-meta-row">
+      <div class="recipe-meta-field">
+        <label class="recipe-field-label">Type</label>
+        <div class="stream-picker">
+          <button type="button" class="stream-pill" data-val="" onclick="selectStream('')">—</button>
+          <button type="button" class="stream-pill" data-val="SHORT" onclick="selectStream('SHORT')">SHORT</button>
+          <button type="button" class="stream-pill" data-val="LONG" onclick="selectStream('LONG')">LONG</button>
+        </div>
+      </div>
+      <div class="recipe-meta-field">
+        <label class="recipe-field-label" for="recipe-time">Cook time</label>
+        <div class="time-input-wrap">
+          <input type="number" id="recipe-time" min="1" placeholder="0" style="width:100px">
+          <span class="time-unit">min</span>
+        </div>
+      </div>
+      <div class="recipe-meta-field">
+        <label class="recipe-field-label">Difficulty</label>
+        <div class="diff-picker">
+          <button type="button" class="diff-dot" onclick="selectDiff(1)" title="Easy"></button>
+          <button type="button" class="diff-dot" onclick="selectDiff(2)" title="Simple"></button>
+          <button type="button" class="diff-dot" onclick="selectDiff(3)" title="Medium"></button>
+          <button type="button" class="diff-dot" onclick="selectDiff(4)" title="Hard"></button>
+          <button type="button" class="diff-dot" onclick="selectDiff(5)" title="Expert"></button>
+        </div>
+      </div>
+    </div>
 
-    loadSummary().catch(() => {
-      document.getElementById('budget-card').innerHTML = '<h2>Budget</h2><p class="loading">API unreachable</p>';
-      document.getElementById('pipeline-card').innerHTML = '<h2>Pipeline</h2><p class="loading">API unreachable</p>';
-      document.getElementById('queue-card').innerHTML = '<h2>In production</h2><p class="loading">API unreachable</p>';
-      document.getElementById('report-card').innerHTML = '<h2>Weekly insights</h2><p class="loading">API unreachable</p>';
-      document.getElementById('cost-card').innerHTML = '<h2>LLM cost this week</h2><p class="loading">API unreachable</p>';
-      document.getElementById('slo-card').innerHTML = '<h2>SLOs</h2><p class="loading">API unreachable</p>';
+    <!-- Ingredients -->
+    <div class="recipe-form-field" style="margin-top:20px">
+      <label class="recipe-field-label">Ingredients</label>
+      <div id="recipe-ing-checklist" class="recipe-ing-list"></div>
+    </div>
+
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-ghost" onclick="document.getElementById('recipe-dialog').close()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveRecipe()">Save recipe</button>
+  </div>
+</dialog>
+
+<!-- New idea dialog -->
+<dialog id="new-idea-dialog">
+  <div class="dialog-header">
+    <h3>Save idea draft</h3>
+    <button class="btn-close" onclick="document.getElementById('new-idea-dialog').close()">✕</button>
+  </div>
+  <div class="dialog-body">
+    <div class="form-group" style="margin-bottom:12px"><label>Title *</label><input type="text" id="idea-title" placeholder="e.g. 5-min garlic butter pasta"></div>
+    <div class="form-group"><label>Stream</label>
+      <select id="idea-stream"><option value="SHORT">SHORT</option><option value="LONG">LONG</option></select>
+    </div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-ghost" onclick="document.getElementById('new-idea-dialog').close()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveNewIdea()">Save idea</button>
+  </div>
+</dialog>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- SCRIPT -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+const API = 'http://localhost:8000';
+
+document.getElementById('api-docs-link').href = API + '/docs';
+document.getElementById('calendar-link').href  = API + '/calendar.ics';
+
+// ── State ────────────────────────────────────────────────────────────────────
+const State = (() => {
+  let d = {};
+  const L = {};
+  return {
+    get: k => d[k],
+    set: (k, v) => { d[k] = v; (L[k] || []).forEach(f => f(v)); },
+    on:  (k, f) => { (L[k] = L[k] || []).push(f); }
+  };
+})();
+
+// ── Fetch helper ─────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'HTTP ' + res.status);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ── Confirm dialog ───────────────────────────────────────────────────────────
+function confirmDialog(title, msg) {
+  return new Promise(resolve => {
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-msg').textContent = msg;
+    const dlg = document.getElementById('confirm-dialog');
+    const btn = document.getElementById('confirm-ok-btn');
+    const handler = () => { resolve(true); dlg.close(); btn.removeEventListener('click', handler); };
+    btn.addEventListener('click', handler);
+    dlg.addEventListener('close', () => resolve(false), { once: true });
+    dlg.showModal();
+  });
+}
+
+// ── Escape HTML ──────────────────────────────────────────────────────────────
+function esc(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Tab navigation ─────────────────────────────────────────────────────────
+const TAB_LOADERS = {
+  overview: loadOverview, videos: loadVideos, ingredients: loadIngredients,
+  recipes: loadRecipes, grocery: loadGroceryTab, analytics: loadAnalytics, agents: loadAgents,
+};
+const _loaded = new Set();
+
+document.getElementById('tabnav').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  const tab = btn.dataset.tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  localStorage.setItem('activeTab', tab);
+  if (!_loaded.has(tab) && TAB_LOADERS[tab]) { _loaded.add(tab); TAB_LOADERS[tab](); }
+});
+
+(function restoreTab() {
+  const saved = localStorage.getItem('activeTab');
+  if (saved && saved !== 'overview') {
+    const btn = document.querySelector(`[data-tab="${saved}"]`);
+    if (btn) { btn.click(); return; }
+  }
+  _loaded.add('overview');
+  loadOverview();
+})();
+
+function switchTab(name) { document.querySelector(`[data-tab="${name}"]`)?.click(); }
+
+// ── Emoji helpers ────────────────────────────────────────────────────────────
+function recipeEmoji(title) {
+  if (!title) return '🍽️';
+  const t = title.toLowerCase();
+  if (/pasta|spaghetti|noodle|linguine|penne|fettuccine|carbonara|bolognese|tagliatelle/.test(t)) return '🍝';
+  if (/pizza/.test(t)) return '🍕';
+  if (/burger|sandwich|wrap/.test(t)) return '🍔';
+  if (/soup|broth|chowder|bisque|ramen/.test(t)) return '🍲';
+  if (/salad/.test(t)) return '🥗';
+  if (/cake|dessert|cookie|brownie|tart|pie|cheesecake/.test(t)) return '🎂';
+  if (/chocolate/.test(t)) return '🍫';
+  if (/chicken/.test(t)) return '🍗';
+  if (/fish|salmon|tuna|seafood|shrimp|prawn|cod/.test(t)) return '🐟';
+  if (/steak|beef|meat|lamb/.test(t)) return '🥩';
+  if (/rice|risotto|paella|fried rice/.test(t)) return '🍚';
+  if (/egg|omelette|frittata|scramble/.test(t)) return '🍳';
+  if (/bread|toast|bagel|focaccia/.test(t)) return '🍞';
+  if (/taco|burrito|quesadilla|nacho/.test(t)) return '🌮';
+  if (/curry|stew|dhal/.test(t)) return '🍛';
+  if (/smoothie|juice|drink|shake/.test(t)) return '🥤';
+  if (/pancake|waffle|breakfast/.test(t)) return '🥞';
+  if (/ice cream|gelato|sorbet/.test(t)) return '🍦';
+  if (/avocado|guacamole/.test(t)) return '🥑';
+  return '🍽️';
+}
+
+function ingredientEmoji(name) {
+  if (!name) return '✦';
+  const n = name.toLowerCase();
+  if (/tomato/.test(n)) return '🍅';
+  if (/garlic/.test(n)) return '🧄';
+  if (/onion/.test(n)) return '🧅';
+  if (/chicken|poultry/.test(n)) return '🍗';
+  if (/beef|steak/.test(n)) return '🥩';
+  if (/fish|salmon|tuna|cod|sea/.test(n)) return '🐟';
+  if (/shrimp|prawn/.test(n)) return '🦐';
+  if (/pasta|noodle|spaghetti|penne|fettuccine/.test(n)) return '🍝';
+  if (/rice/.test(n)) return '🍚';
+  if (/potato/.test(n)) return '🥔';
+  if (/carrot/.test(n)) return '🥕';
+  if (/egg/.test(n)) return '🥚';
+  if (/butter/.test(n)) return '🧈';
+  if (/milk|cream/.test(n)) return '🥛';
+  if (/cheese/.test(n)) return '🧀';
+  if (/lemon|lime/.test(n)) return '🍋';
+  if (/pepper/.test(n)) return '🌶️';
+  if (/mushroom/.test(n)) return '🍄';
+  if (/broccoli/.test(n)) return '🥦';
+  if (/spinach|lettuce|kale|arugula/.test(n)) return '🥬';
+  if (/avocado/.test(n)) return '🥑';
+  if (/olive|oil/.test(n)) return '🫒';
+  if (/salt/.test(n)) return '🧂';
+  if (/herb|basil|parsley|cilantro|thyme|rosemary|mint/.test(n)) return '🌿';
+  if (/flour/.test(n)) return '🌾';
+  if (/sugar/.test(n)) return '🍬';
+  if (/chocolate/.test(n)) return '🍫';
+  if (/apple/.test(n)) return '🍎';
+  if (/berry|strawberry|blueberry|raspberry/.test(n)) return '🍓';
+  if (/bread/.test(n)) return '🍞';
+  if (/wine/.test(n)) return '🍷';
+  if (/water|broth|stock/.test(n)) return '💧';
+  if (/bean|lentil/.test(n)) return '🫘';
+  if (/corn/.test(n)) return '🌽';
+  if (/pumpkin|squash/.test(n)) return '🎃';
+  return '✦';
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TAB 1: OVERVIEW
+// ════════════════════════════════════════════════════════════════════════════
+function thisMonday() {
+  const d = new Date();
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  return d.toISOString().slice(0, 10);
+}
+
+function loadOverview() { loadSummary(); loadReport(); loadGroceryCard(); loadCosts(); loadSlos(); }
+
+const CARD_TITLES = { 'budget-card': 'Budget', 'pipeline-card': 'Pipeline', 'queue-card': 'In production' };
+
+async function loadSummary() {
+  try {
+    const d = await api('GET', '/dashboard/summary');
+    const b = d.budget;
+    const pct = Math.min(100, b.budget_limit > 0 ? (b.planned_spend / b.budget_limit) * 100 : 0);
+    const cls = pct > 100 ? 'over' : pct > 80 ? 'warn' : '';
+    document.getElementById('budget-card').innerHTML = `
+      <div class="card-title">Budget — week of ${b.week_id}</div>
+      <div class="budget-bar"><div class="budget-bar-fill ${cls}" style="width:${pct.toFixed(1)}%"></div></div>
+      <div class="stat">Planned <span>$${b.planned_spend.toFixed(2)}</span></div>
+      <div class="stat">Actual  <span>$${b.actual_spend.toFixed(2)}</span></div>
+      <div class="stat">Limit   <span>$${b.budget_limit.toFixed(2)}</span></div>
+      <div class="stat">Remaining <span>$${(b.budget_limit - b.planned_spend).toFixed(2)}</span></div>`;
+    const order = ['IDEA','SCRIPT','SHOT','EDIT','QC','READY','SCHEDULED','PUBLISHED'];
+    const badges = order.map(s => d.pipeline[s] ? `<span class="badge ${s}">${s} ${d.pipeline[s]}</span>` : '').join('');
+    document.getElementById('pipeline-card').innerHTML =
+      `<div class="card-title">Pipeline</div><div class="badge-row">${badges || '<span class="empty">No videos yet</span>'}</div>`;
+    const items = (d.queue || []).map(v =>
+      `<div class="queue-item"><div class="queue-title">${esc(v.title)}</div><span class="badge ${v.status}">${v.status}</span></div>`).join('');
+    document.getElementById('queue-card').innerHTML =
+      `<div class="card-title">In production</div>${items || `<p class="empty">Nothing in progress — <a class="link" href="#" onclick="switchTab('videos')">create a new idea →</a></p>`}`;
+  } catch (e) {
+    ['budget-card','pipeline-card','queue-card'].forEach(id => {
+      document.getElementById(id).innerHTML = `<div class="card-title">${CARD_TITLES[id]}</div><p class="loading">API unreachable</p>`;
     });
-    loadReport();
-    loadGrocery();
-    loadCosts();
-    loadSlos();
-  </script>
+  }
+}
+
+async function loadGroceryCard() {
+  const monday = thisMonday();
+  try {
+    const d = await api('GET', `/armand/grocery-list/${monday}`);
+    if (!d.items || d.items.length === 0) {
+      document.getElementById('grocery-card').innerHTML =
+        `<div class="card-title">Grocery list <span class="muted-label">${monday}</span></div><p class="empty">No shopping needed this week.</p>`;
+      return;
+    }
+    const rows = d.items.map(i =>
+      `<div class="grocery-item"><span>${esc(i.name)} <small class="item-qty">${i.to_buy} ${i.unit || ''}</small></span><span>$${i.estimated_cost.toFixed(2)}</span></div>`).join('');
+    document.getElementById('grocery-card').innerHTML =
+      `<div class="card-title">Grocery list <span class="muted-label">${monday}</span></div>${rows}<div class="stat stat--total">Total <span>$${d.total_estimated_cost.toFixed(2)}</span></div>`;
+  } catch (e) {
+    document.getElementById('grocery-card').innerHTML = `<div class="card-title">Grocery list</div><p class="loading">Could not load.</p>`;
+  }
+}
+
+async function loadReport() {
+  const monday = thisMonday();
+  try {
+    const d = await api('GET', `/etienne/report/${monday}`);
+    if (!d.insights || d.insights.length === 0) {
+      document.getElementById('report-card').innerHTML =
+        '<div class="card-title">Weekly insights</div><p class="empty">No insights for this week. Data populates after videos are published.</p>';
+      return;
+    }
+    const insightRows = d.insights.map(i => `<div class="insight-row">${esc(i)}</div>`).join('');
+    const recRows = (d.recommendations || []).map(r => `<div class="rec-row">${esc(r)}</div>`).join('');
+    document.getElementById('report-card').innerHTML = `
+      <div class="card-title">Weekly insights <span class="muted-label">${monday}</span></div>
+      <div class="insights-list">${insightRows}</div>
+      ${recRows ? `<div class="section-label">Recommendations</div>${recRows}` : ''}
+      <div class="stat stat--total">Views <span>${(d.total_views || 0).toLocaleString()}</span></div>
+      <div class="stat">Avg retention <span>${(d.avg_retention_pct || 0).toFixed(1)}%</span></div>`;
+  } catch (e) {
+    document.getElementById('report-card').innerHTML = '<div class="card-title">Weekly insights</div><p class="loading">Could not load.</p>';
+  }
+}
+
+async function loadCosts() {
+  try {
+    const d = await api('GET', '/observability/costs');
+    const total = d.total_cost_usd || 0;
+    const agents = (d.by_agent || []).sort((a, b) => b.cost_usd - a.cost_usd);
+    const maxCost = agents.reduce((m, a) => Math.max(m, a.cost_usd), 0.0001);
+    const rows = agents.length > 0
+      ? agents.map(a => {
+          const pct = Math.round((a.cost_usd / maxCost) * 100);
+          return `<div class="agent-bar-row">
+            <div class="agent-bar-label">${esc(a.agent)}</div>
+            <div class="agent-bar-track"><div class="agent-bar-fill" style="width:${pct}%"></div></div>
+            <div class="agent-bar-cost">$${a.cost_usd.toFixed(4)}</div>
+          </div>`;
+        }).join('')
+      : '<p class="empty">No LLM calls recorded yet.</p>';
+    document.getElementById('cost-card').innerHTML = `<div class="card-title">LLM cost this week</div><div class="stat stat--spaced">Total <span>$${total.toFixed(4)}</span></div>${rows}`;
+  } catch (e) {
+    document.getElementById('cost-card').innerHTML = '<div class="card-title">LLM cost this week</div><p class="loading">Could not load.</p>';
+  }
+}
+
+async function loadSlos() {
+  try {
+    const slos = await api('GET', '/observability/slo');
+    const rows = slos.map(s => {
+      const cls = s.passing ? 'pass' : 'fail';
+      const val = s.current_value != null
+        ? (typeof s.current_value === 'number' ? s.current_value.toLocaleString(undefined, { maximumFractionDigits: 1 }) : s.current_value)
+        : '—';
+      const unit = s.unit === 'percent' ? '%' : s.unit === 'ms' ? ' ms' : s.unit === 'usd' ? ' USD' : ` ${s.unit}`;
+      return `<div class="slo-row"><div class="slo-dot ${cls}"></div><div class="slo-desc">${esc(s.description)}</div><div class="slo-val">${val}${unit}</div></div>`;
+    }).join('');
+    document.getElementById('slo-card').innerHTML = `<div class="card-title">SLOs</div>${rows}`;
+  } catch (e) {
+    document.getElementById('slo-card').innerHTML = '<div class="card-title">SLOs</div><p class="loading">Could not load.</p>';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TAB 2: VIDEOS (Kanban)
+// ════════════════════════════════════════════════════════════════════════════
+const STATUSES = ['IDEA','SCRIPT','SHOT','EDIT','QC','READY','SCHEDULED','PUBLISHED'];
+let _currentVideoId = null;
+
+async function loadVideos() {
+  const board = document.getElementById('kanban-board');
+  try {
+    const videos = await api('GET', '/videos');
+    State.set('videos', videos);
+    renderKanban(videos);
+  } catch (e) {
+    board.innerHTML = `<p class="loading">Could not load videos: ${esc(e.message)}</p>`;
+  }
+}
+
+function renderKanban(videos) {
+  const board = document.getElementById('kanban-board');
+  const byStatus = {};
+  STATUSES.forEach(s => { byStatus[s] = []; });
+  (videos || []).forEach(v => { if (byStatus[v.status]) byStatus[v.status].push(v); });
+
+  board.innerHTML = STATUSES.map(status => {
+    const cards = (byStatus[status] || []).map(v => `
+      <div class="kanban-card" onclick="openVideoDetail('${v.id}')">
+        <div class="kanban-card-title">${esc(v.title)}</div>
+        <div class="kanban-card-meta"><span class="badge ${v.stream || ''}">${v.stream || '—'}</span></div>
+      </div>`).join('');
+    // "+ New idea" lives only inside the IDEA column footer
+    const footer = status === 'IDEA'
+      ? `<div class="kanban-col-footer"><button class="btn btn-ghost btn-sm kanban-add-btn" onclick="openNewIdea()">+ New idea</button></div>`
+      : '';
+    return `<div class="kanban-col">
+      <div class="kanban-col-header"><span>${status}</span><span class="kanban-col-count">${byStatus[status].length}</span></div>
+      <div class="kanban-cards">${cards}</div>
+      ${footer}
+    </div>`;
+  }).join('');
+}
+
+async function openVideoDetail(videoId) {
+  _currentVideoId = videoId;
+  try {
+    const video = await api('GET', `/videos/${videoId}`);
+    const dlg = document.getElementById('video-dialog');
+    document.getElementById('vd-title').textContent = video.title || 'Video';
+    const sb = document.getElementById('vd-status-badge');
+    sb.textContent = video.status; sb.className = `badge ${video.status}`;
+    const stb = document.getElementById('vd-stream-badge');
+    stb.textContent = video.stream || '—'; stb.className = `badge ${video.stream || ''}`;
+    const fbDisplay = document.getElementById('vd-feedback-display');
+    if (video.feedback) { fbDisplay.classList.remove('hidden'); document.getElementById('vd-feedback-text').textContent = video.feedback; }
+    else { fbDisplay.classList.add('hidden'); }
+    const scripts = video.scripts || [];
+    document.getElementById('vd-scripts-section').innerHTML = scripts.length > 0
+      ? scripts.map(s => `<div class="script-block"><div class="script-label">${esc(s.variant)}</div><pre class="script-body">${esc(s.body || '')}</pre></div>`).join('')
+      : '<p class="empty">No scripts yet.</p>';
+    document.getElementById('vd-force-status').value = '';
+    document.getElementById('vd-feedback-input').value = '';
+    const approveBtn = document.getElementById('vd-approve-btn');
+    approveBtn.disabled = video.status !== 'QC';
+    approveBtn.title = video.status !== 'QC' ? 'Video must be in QC status to approve' : '';
+    dlg.showModal();
+  } catch (e) { toast('Could not load video: ' + e.message, 'error'); }
+}
+
+async function doApprove() {
+  if (!_currentVideoId) return;
+  try {
+    await api('POST', `/videos/${_currentVideoId}/approve`);
+    toast('Video approved → SCHEDULED');
+    document.getElementById('video-dialog').close();
+    loadVideos();
+  } catch (e) { toast('Approve failed: ' + e.message, 'error'); }
+}
+
+async function doRequestChanges() {
+  if (!_currentVideoId) return;
+  const feedback = document.getElementById('vd-feedback-input').value.trim();
+  if (!feedback) { toast('Enter feedback first', 'error'); return; }
+  try {
+    await api('POST', `/videos/${_currentVideoId}/request-changes`, { feedback });
+    toast('Feedback sent');
+    document.getElementById('video-dialog').close();
+    loadVideos();
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function doForceStatus() {
+  if (!_currentVideoId) return;
+  const status = document.getElementById('vd-force-status').value;
+  if (!status) { toast('Pick a stage first', 'error'); return; }
+  try {
+    await api('PUT', `/videos/${_currentVideoId}/status`, { status });
+    toast(`Status → ${status}`);
+    document.getElementById('video-dialog').close();
+    loadVideos();
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+function openNewIdea() {
+  document.getElementById('idea-title').value = '';
+  document.getElementById('idea-stream').value = 'SHORT';
+  document.getElementById('new-idea-dialog').showModal();
+}
+
+async function saveNewIdea() {
+  const title = document.getElementById('idea-title').value.trim();
+  if (!title) { toast('Title is required', 'error'); return; }
+  const stream = document.getElementById('idea-stream').value;
+  try {
+    await api('POST', '/ideas/save', { title, stream });
+    toast('Idea saved!');
+    document.getElementById('new-idea-dialog').close();
+    loadVideos();
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TAB 3: INGREDIENTS
+// ════════════════════════════════════════════════════════════════════════════
+let _editingIngredientId = null;
+
+async function loadIngredients() {
+  const tbody = document.querySelector('#ingredients-table tbody');
+  try {
+    const ingredients = await api('GET', '/armand/ingredients');
+    State.set('ingredients', ingredients);
+    renderIngredientsTable(ingredients);
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" class="loading">Could not load: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+function renderIngredientsTable(ingredients) {
+  const tbody = document.querySelector('#ingredients-table tbody');
+  if (!ingredients || ingredients.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty cell-pad">No ingredients yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = ingredients.map(ing => `
+    <tr>
+      <td>${esc(ing.name)}</td>
+      <td>${esc(ing.category || '—')}</td>
+      <td>${esc(ing.unit || '—')}</td>
+      <td>${ing.avg_price_per_unit != null ? '$' + Number(ing.avg_price_per_unit).toFixed(2) : '—'}</td>
+      <td><div class="td-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openEditIngredient('${ing.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteIngredient('${ing.id}', '${esc(ing.name)}')">Delete</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+function openAddIngredient() {
+  _editingIngredientId = null;
+  document.getElementById('ing-dialog-title').textContent = 'Add ingredient';
+  ['ing-name','ing-category','ing-unit','ing-price'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ingredient-dialog').showModal();
+}
+
+function openEditIngredient(id) {
+  const ing = (State.get('ingredients') || []).find(i => i.id === id);
+  if (!ing) return;
+  _editingIngredientId = id;
+  document.getElementById('ing-dialog-title').textContent = 'Edit ingredient';
+  document.getElementById('ing-name').value = ing.name || '';
+  document.getElementById('ing-category').value = ing.category || '';
+  document.getElementById('ing-unit').value = ing.unit || '';
+  document.getElementById('ing-price').value = ing.avg_price_per_unit != null ? ing.avg_price_per_unit : '';
+  document.getElementById('ingredient-dialog').showModal();
+}
+
+async function saveIngredient() {
+  const name = document.getElementById('ing-name').value.trim();
+  if (!name) { toast('Name is required', 'error'); return; }
+  const priceVal = document.getElementById('ing-price').value;
+  const body = {
+    name,
+    category: document.getElementById('ing-category').value.trim() || null,
+    unit:     document.getElementById('ing-unit').value.trim() || null,
+    avg_price_per_unit: priceVal !== '' ? parseFloat(priceVal) : null,
+  };
+  try {
+    if (_editingIngredientId) { await api('PUT', `/armand/ingredients/${_editingIngredientId}`, body); toast('Ingredient updated'); }
+    else { await api('POST', '/armand/ingredients', body); toast('Ingredient added'); }
+    document.getElementById('ingredient-dialog').close();
+    loadIngredients();
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteIngredient(id, name) {
+  const ok = await confirmDialog('Delete ingredient', `Delete "${name}"? This cannot be undone.`);
+  if (!ok) return;
+  try {
+    await api('DELETE', `/armand/ingredients/${id}`);
+    toast('Ingredient deleted');
+    loadIngredients();
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TAB 4: RECIPES
+// ════════════════════════════════════════════════════════════════════════════
+let _editingRecipeId = null;
+let _recipeStream    = null;
+let _recipeDiff      = null;
+
+function selectStream(val) {
+  _recipeStream = val || null;
+  document.querySelectorAll('.stream-pill').forEach(b => b.classList.toggle('active', b.dataset.val === val));
+}
+
+function selectDiff(val) {
+  // clicking the active level clears it
+  _recipeDiff = _recipeDiff === val ? null : val;
+  document.querySelectorAll('.diff-dot').forEach((dot, i) => dot.classList.toggle('filled', _recipeDiff && (i + 1) <= _recipeDiff));
+}
+
+function updateRecipeEmoji() {
+  const title = document.getElementById('recipe-title').value;
+  const el = document.getElementById('recipe-form-emoji');
+  const emoji = recipeEmoji(title);
+  if (el.textContent !== emoji) {
+    el.style.transform = 'scale(1.3)';
+    el.textContent = emoji;
+    setTimeout(() => el.style.transform = '', 200);
+  }
+}
+
+async function loadRecipes() {
+  const grid = document.getElementById('recipes-grid');
+  grid.innerHTML = '<p class="loading">Loading…</p>';
+  try {
+    const [recipes, ingredients] = await Promise.all([
+      api('GET', '/armand/recipes'),
+      api('GET', '/armand/ingredients'),
+    ]);
+    State.set('recipes', recipes);
+    State.set('ingredients', ingredients);
+    renderRecipeCards(recipes);
+  } catch (e) {
+    grid.innerHTML = `<p class="loading">Could not load: ${esc(e.message)}</p>`;
+  }
+}
+
+function renderRecipeCards(recipes) {
+  const grid = document.getElementById('recipes-grid');
+  if (!recipes || recipes.length === 0) {
+    grid.innerHTML = '<p class="empty">No recipes yet. Hit "+ New recipe" to create your first one.</p>';
+    return;
+  }
+  grid.innerHTML = recipes.map(r => {
+    const emoji = recipeEmoji(r.title);
+    const diffDots = [1,2,3,4,5].map(i =>
+      `<span class="diff-dot-sm ${r.difficulty && i <= r.difficulty ? 'on' : ''}"></span>`).join('');
+    const ings = (r.ingredients || []).slice(0, 7).map(i => {
+      const e = ingredientEmoji(i.name || i.ingredient_name || '');
+      const label = esc(i.name || i.ingredient_name || '');
+      return `<span class="recipe-card-ing" title="${label}">${e}</span>`;
+    }).join('');
+    const hasMeta = r.difficulty != null || r.time_required_minutes != null;
+    return `<div class="recipe-card">
+      <div class="recipe-card-top">
+        <span class="recipe-card-emoji">${emoji}</span>
+        ${r.stream ? `<span class="badge ${r.stream}">${r.stream}</span>` : ''}
+      </div>
+      <div class="recipe-card-name">${esc(r.title)}</div>
+      ${hasMeta ? `<div class="recipe-card-meta">
+        ${r.difficulty != null ? `<div class="diff-dots-display">${diffDots}</div>` : ''}
+        ${r.difficulty != null && r.time_required_minutes != null ? '<span class="recipe-card-sep">·</span>' : ''}
+        ${r.time_required_minutes != null ? `<span class="recipe-card-time">${r.time_required_minutes} min</span>` : ''}
+      </div>` : ''}
+      ${ings ? `<div class="recipe-card-ings">${ings}</div>` : ''}
+      <div class="recipe-card-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openEditRecipe('${r.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteRecipe('${r.id}', '${esc(r.title)}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildIngredientChecklist(selectedIds) {
+  const ingredients = State.get('ingredients') || [];
+  const el = document.getElementById('recipe-ing-checklist');
+  if (ingredients.length === 0) {
+    el.innerHTML = `<span class="check-empty">No ingredients yet — <a class="link" href="#" onclick="switchTab('ingredients')">add some →</a></span>`;
+    return;
+  }
+  el.innerHTML = ingredients.map(ing => {
+    const sel = selectedIds && selectedIds.find(s => s.ingredient_id === ing.id);
+    const emoji = ingredientEmoji(ing.name);
+    return `<label>
+      <input type="checkbox" value="${ing.id}" ${sel ? 'checked' : ''} class="rec-ing-check">
+      <span class="ing-emoji">${emoji}</span>
+      <span class="ing-check-label">${esc(ing.name)}</span>
+      <input type="number" class="rec-ing-qty" data-id="${ing.id}" value="${sel ? sel.qty : ''}" placeholder="qty" min="0" step="0.01">
+    </label>`;
+  }).join('');
+}
+
+function _resetRecipeForm() {
+  document.getElementById('recipe-title').value = '';
+  document.getElementById('recipe-form-emoji').textContent = '🍽️';
+  document.getElementById('recipe-time').value = '';
+  selectStream('');
+  _recipeDiff = null;
+  document.querySelectorAll('.diff-dot').forEach(d => d.classList.remove('filled'));
+}
+
+function openAddRecipe() {
+  _editingRecipeId = null;
+  document.getElementById('recipe-dialog-title').textContent = 'New recipe';
+  _resetRecipeForm();
+  buildIngredientChecklist([]);
+  document.getElementById('recipe-dialog').showModal();
+}
+
+async function openEditRecipe(id) {
+  try {
+    const recipe = await api('GET', `/armand/recipes/${id}`);
+    _editingRecipeId = id;
+    document.getElementById('recipe-dialog-title').textContent = 'Edit recipe';
+    _resetRecipeForm();
+    document.getElementById('recipe-title').value = recipe.title || '';
+    document.getElementById('recipe-form-emoji').textContent = recipeEmoji(recipe.title);
+    document.getElementById('recipe-time').value = recipe.time_required_minutes != null ? recipe.time_required_minutes : '';
+    selectStream(recipe.stream || '');
+    if (recipe.difficulty) {
+      _recipeDiff = recipe.difficulty;
+      document.querySelectorAll('.diff-dot').forEach((dot, i) => dot.classList.toggle('filled', (i + 1) <= _recipeDiff));
+    }
+    const selIds = (recipe.ingredients || []).map(i => ({ ingredient_id: i.ingredient_id || i.id, qty: i.qty }));
+    buildIngredientChecklist(selIds);
+    document.getElementById('recipe-dialog').showModal();
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function saveRecipe() {
+  const title = document.getElementById('recipe-title').value.trim();
+  if (!title) { toast('Recipe name is required', 'error'); return; }
+  const checks = document.querySelectorAll('.rec-ing-check:checked');
+  const ingredients = Array.from(checks).map(cb => {
+    const qtyEl = document.querySelector(`.rec-ing-qty[data-id="${cb.value}"]`);
+    return { ingredient_id: cb.value, qty: qtyEl && qtyEl.value ? parseFloat(qtyEl.value) : null };
+  });
+  const body = {
+    title,
+    stream: _recipeStream || null,
+    difficulty: _recipeDiff || null,
+    time_required_minutes: document.getElementById('recipe-time').value ? parseInt(document.getElementById('recipe-time').value) : null,
+    ingredients,
+  };
+  try {
+    if (_editingRecipeId) { await api('PUT', `/armand/recipes/${_editingRecipeId}`, body); toast('Recipe updated'); }
+    else { await api('POST', '/armand/recipes', body); toast('Recipe created'); }
+    document.getElementById('recipe-dialog').close();
+    loadRecipes();
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteRecipe(id, title) {
+  const ok = await confirmDialog('Delete recipe', `Delete "${title}"? This cannot be undone.`);
+  if (!ok) return;
+  try {
+    await api('DELETE', `/armand/recipes/${id}`);
+    toast('Recipe deleted');
+    loadRecipes();
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TAB 5: GROCERY PLANNER
+// ════════════════════════════════════════════════════════════════════════════
+let _groceryWeek = thisMonday();
+let _groceryListData = null;
+
+function loadGroceryTab() {
+  const input = document.getElementById('grocery-week-input');
+  input.value = _groceryWeek;
+  document.getElementById('grocery-week-label').textContent = _groceryWeek;
+  loadGroceryRecipeChecklist();
+}
+
+function onGroceryWeekChange() {
+  _groceryWeek = document.getElementById('grocery-week-input').value;
+  document.getElementById('grocery-week-label').textContent = _groceryWeek;
+  loadGroceryList();
+}
+
+async function loadGroceryRecipeChecklist() {
+  const el = document.getElementById('recipe-checklist');
+  try {
+    const recipes = await api('GET', '/armand/recipes');
+    State.set('recipes', recipes);
+    if (!recipes || recipes.length === 0) {
+      el.innerHTML = `<span class="check-empty">No recipes yet — <a class="link" href="#" onclick="switchTab('recipes')">add one →</a></span>`;
+      return;
+    }
+    el.innerHTML = recipes.map(r =>
+      `<label>
+        <input type="checkbox" class="grocery-recipe-check" value="${r.id}" onchange="onGroceryRecipeChange()">
+        <span class="ing-check-label">${esc(r.title)}</span>
+        ${r.stream ? `<span class="badge badge-shrink ${r.stream}">${r.stream}</span>` : ''}
+       </label>`).join('');
+  } catch (e) {
+    el.innerHTML = '<span class="check-empty">Could not load recipes.</span>';
+  }
+}
+
+async function onGroceryRecipeChange() {
+  const checked = Array.from(document.querySelectorAll('.grocery-recipe-check:checked')).map(c => c.value);
+  const downloadBtn = document.getElementById('grocery-download-btn');
+  if (checked.length === 0) {
+    document.getElementById('grocery-list-body').innerHTML = '<p class="empty">Select recipes to generate list.</p>';
+    document.getElementById('grocery-budget-bar-wrap').classList.add('hidden');
+    _groceryListData = null;
+    downloadBtn.disabled = true;
+    return;
+  }
+  try {
+    const result = await api('POST', '/armand/plan', { recipe_ids: checked, week_id: _groceryWeek });
+    loadGroceryList();
+    const pct = result.budget_pct != null ? Math.min(100, result.budget_pct) : 0;
+    const cls = pct > 100 ? 'over' : pct > 80 ? 'warn' : '';
+    document.getElementById('grocery-budget-bar-wrap').classList.remove('hidden');
+    document.getElementById('grocery-budget-label').textContent = `$${(result.planned_spend || 0).toFixed(2)} / $${(result.budget_limit || 0).toFixed(2)}`;
+    const fill = document.getElementById('grocery-budget-fill');
+    fill.style.width = pct.toFixed(1) + '%';
+    fill.className = `budget-bar-fill ${cls}`;
+  } catch (e) { toast('Plan error: ' + e.message, 'error'); }
+}
+
+async function loadGroceryList() {
+  const el = document.getElementById('grocery-list-body');
+  const downloadBtn = document.getElementById('grocery-download-btn');
+  try {
+    const d = await api('GET', `/armand/grocery-list/${_groceryWeek}`);
+    _groceryListData = d;
+    if (!d.items || d.items.length === 0) {
+      el.innerHTML = '<p class="empty">No items needed.</p>';
+      downloadBtn.disabled = true;
+      return;
+    }
+    el.innerHTML = d.items.map(i =>
+      `<div class="grocery-item"><span>${esc(i.name)} <small class="item-qty">${i.to_buy} ${i.unit || ''}</small></span><span>$${i.estimated_cost.toFixed(2)}</span></div>`
+    ).join('') + `<div class="stat stat--total">Total <span>$${d.total_estimated_cost.toFixed(2)}</span></div>`;
+    downloadBtn.disabled = false;
+  } catch (e) {
+    el.innerHTML = '<p class="empty">No list yet.</p>';
+    downloadBtn.disabled = true;
+  }
+}
+
+function downloadGroceryList() {
+  if (!_groceryListData || !_groceryListData.items || _groceryListData.items.length === 0) { toast('No list to download', 'error'); return; }
+  const lines = [
+    `Grocery list — week of ${_groceryWeek}`, '='.repeat(40),
+    ...(_groceryListData.items || []).map(i => `${i.name}: ${i.to_buy} ${i.unit || ''} (~$${i.estimated_cost.toFixed(2)})`),
+    '', `Total: $${_groceryListData.total_estimated_cost.toFixed(2)}`,
+  ];
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain' }));
+  a.download = `grocery-${_groceryWeek}.txt`;
+  a.click();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TAB 6: ANALYTICS
+// ════════════════════════════════════════════════════════════════════════════
+let _chartLoaded = false;
+let _chartInstance = null;
+
+async function loadAnalytics() {
+  const tbody = document.querySelector('#analytics-table tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="loading cell-pad">Loading…</td></tr>';
+  try {
+    const videos = await api('GET', '/videos');
+    const rows = [], chartLabels = [], chartData = [];
+    for (const v of (videos || [])) {
+      try {
+        const metrics = await api('GET', `/etienne/metrics/${v.id}`);
+        (metrics.metrics || []).forEach(m => {
+          rows.push({ title: v.title, platform: m.platform, views: m.views, retention_pct: m.retention_pct, watch_time_seconds: m.watch_time_seconds, likes: m.likes });
+          chartLabels.push(v.title.slice(0, 20) + (v.title.length > 20 ? '…' : ''));
+          chartData.push(m.views || 0);
+        });
+      } catch (_) {}
+    }
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty cell-pad">No metrics recorded yet. Run the pipeline to generate video data.</td></tr>';
+      document.getElementById('analytics-chart-wrap').classList.add('hidden');
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `<tr>
+      <td>${esc(r.title)}</td><td>${esc(r.platform || '—')}</td>
+      <td>${(r.views || 0).toLocaleString()}</td>
+      <td>${r.retention_pct != null ? r.retention_pct.toFixed(1) + '%' : '—'}</td>
+      <td>${r.watch_time_seconds != null ? fmtDuration(r.watch_time_seconds) : '—'}</td>
+      <td>${(r.likes || 0).toLocaleString()}</td>
+    </tr>`).join('');
+    await ensureChartJs();
+    document.getElementById('analytics-chart-wrap').classList.remove('hidden');
+    const css = getComputedStyle(document.documentElement);
+    const accent = css.getPropertyValue('--accent').trim();
+    const muted  = css.getPropertyValue('--muted').trim();
+    const border = css.getPropertyValue('--border').trim();
+    const ctx = document.getElementById('analytics-chart').getContext('2d');
+    if (_chartInstance) _chartInstance.destroy();
+    _chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: chartLabels, datasets: [{ label: 'Views', data: chartData, backgroundColor: accent, borderRadius: 4 }] },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: {
+        x: { ticks: { color: muted }, grid: { color: border } },
+        y: { ticks: { color: muted }, grid: { color: border } },
+      }},
+    });
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="6" class="loading cell-pad">Error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+function ensureChartJs() {
+  if (_chartLoaded) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js';
+    s.onload = () => { _chartLoaded = true; resolve(); };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function fmtDuration(seconds) {
+  const m = Math.floor(seconds / 60), s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TAB 7: AGENTS
+// ════════════════════════════════════════════════════════════════════════════
+function loadAgents() { loadAgentCosts(); loadAgentSlos(); loadAgentLatency(); }
+
+async function loadAgentCosts() {
+  const el = document.getElementById('agents-cost-card');
+  try {
+    const d = await api('GET', '/observability/costs');
+    const total = d.total_cost_usd || 0;
+    const agents = (d.by_agent || []).sort((a, b) => b.cost_usd - a.cost_usd);
+    const maxCost = agents.reduce((m, a) => Math.max(m, a.cost_usd), 0.0001);
+    const rows = agents.length > 0
+      ? agents.map(a => {
+          const pct = Math.round((a.cost_usd / maxCost) * 100);
+          return `<div class="agent-bar-row">
+            <div class="agent-bar-label">${esc(a.agent)}</div>
+            <div class="agent-bar-track"><div class="agent-bar-fill" style="width:${pct}%"></div></div>
+            <div class="agent-bar-cost agent-bar-cost-detail"><div>$${a.cost_usd.toFixed(4)}</div><div class="agent-call-count">${a.call_count} calls</div></div>
+          </div>`;
+        }).join('')
+      : '<p class="empty">No calls recorded yet.</p>';
+    el.innerHTML = `<div class="card-title">LLM cost this week (by agent)</div><div class="stat stat--spaced">Total <span>$${total.toFixed(4)}</span></div>${rows}`;
+  } catch (e) { el.innerHTML = '<div class="card-title">LLM cost this week</div><p class="loading">Could not load.</p>'; }
+}
+
+async function loadAgentSlos() {
+  const el = document.getElementById('agents-slo-card');
+  try {
+    const slos = await api('GET', '/observability/slo');
+    const rows = slos.map(s => {
+      const cls = s.passing ? 'pass' : 'fail';
+      const val = s.current_value != null
+        ? (typeof s.current_value === 'number' ? s.current_value.toLocaleString(undefined, { maximumFractionDigits: 1 }) : s.current_value)
+        : '—';
+      const unit = s.unit === 'percent' ? '%' : s.unit === 'ms' ? ' ms' : s.unit === 'usd' ? ' USD' : ` ${s.unit}`;
+      return `<div class="slo-row"><div class="slo-dot ${cls}"></div><div class="slo-desc">${esc(s.description)}</div><div class="slo-val">${val}${unit}</div></div>`;
+    }).join('');
+    el.innerHTML = `<div class="card-title">SLO status</div>${rows || '<p class="empty">No SLOs configured.</p>'}`;
+  } catch (e) { el.innerHTML = '<div class="card-title">SLO status</div><p class="loading">Could not load.</p>'; }
+}
+
+async function loadAgentLatency() {
+  const el = document.getElementById('agents-latency-card');
+  try {
+    const d = await api('GET', '/observability/latency');
+    const endpoints = d.by_endpoint || [];
+    if (endpoints.length === 0) { el.innerHTML = '<div class="card-title">Request latency</div><p class="empty">No requests recorded yet.</p>'; return; }
+    const rows = endpoints.sort((a, b) => (b.avg_ms || 0) - (a.avg_ms || 0)).slice(0, 10).map(ep =>
+      `<div class="stat"><span class="endpoint-label">${esc(ep.endpoint)}</span><span>${(ep.avg_ms || 0).toFixed(0)} ms</span></div>`).join('');
+    el.innerHTML = `<div class="card-title">Request latency (top 10 slowest)</div>${rows}`;
+  } catch (e) { el.innerHTML = '<div class="card-title">Request latency</div><p class="loading">Could not load.</p>'; }
+}
+</script>
 </body>
 </html>
