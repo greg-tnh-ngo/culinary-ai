@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Culinary AI — Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e8e8e8; padding: 24px; }
+    h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 24px; color: #fff; }
+    h2 { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+         color: #888; margin-bottom: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 20px; }
+    .budget-bar { height: 8px; background: #2a2a2a; border-radius: 4px; margin: 12px 0; overflow: hidden; }
+    .budget-bar-fill { height: 100%; border-radius: 4px; background: #22c55e; transition: width 0.4s; }
+    .budget-bar-fill.warn { background: #f59e0b; }
+    .budget-bar-fill.over { background: #ef4444; }
+    .stat { display: flex; justify-content: space-between; font-size: 0.85rem;
+            color: #aaa; padding: 4px 0; border-bottom: 1px solid #222; }
+    .stat:last-child { border-bottom: none; }
+    .stat span { color: #e8e8e8; font-variant-numeric: tabular-nums; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem;
+             font-weight: 600; background: #2a2a2a; color: #aaa; margin: 2px; }
+    .badge.IDEA { background: #1e3a5f; color: #60a5fa; }
+    .badge.SCRIPT { background: #1e3a2a; color: #4ade80; }
+    .badge.QC { background: #3a2a1e; color: #fb923c; }
+    .badge.SCHEDULED { background: #2a1e3a; color: #c084fc; }
+    .badge.PUBLISHED { background: #1e2a1e; color: #86efac; }
+    .queue-item { padding: 8px 0; border-bottom: 1px solid #222; font-size: 0.9rem; }
+    .queue-item:last-child { border-bottom: none; }
+    .queue-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .grocery-item { display: flex; justify-content: space-between; padding: 6px 0;
+                    border-bottom: 1px solid #222; font-size: 0.85rem; }
+    .grocery-item:last-child { border-bottom: none; }
+    .cost { color: #aaa; font-variant-numeric: tabular-nums; }
+    .loading { color: #555; font-size: 0.85rem; }
+    .links { margin-top: 20px; font-size: 0.8rem; color: #555; }
+    .links a { color: #60a5fa; text-decoration: none; }
+    .links a:hover { text-decoration: underline; }
+    .slo-row { display: flex; align-items: center; padding: 7px 0;
+               border-bottom: 1px solid #222; font-size: 0.85rem; }
+    .slo-row:last-child { border-bottom: none; }
+    .slo-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-right: 8px; }
+    .slo-dot.pass { background: #22c55e; }
+    .slo-dot.fail { background: #ef4444; }
+    .slo-label { flex: 1; }
+    .slo-value { color: #aaa; font-variant-numeric: tabular-nums; font-size: 0.8rem; }
+    .agent-bar-row { display: flex; align-items: center; gap: 8px; padding: 5px 0;
+                     border-bottom: 1px solid #222; font-size: 0.82rem; }
+    .agent-bar-row:last-child { border-bottom: none; }
+    .agent-bar-label { width: 120px; color: #aaa; white-space: nowrap; overflow: hidden;
+                       text-overflow: ellipsis; }
+    .agent-bar-track { flex: 1; height: 6px; background: #2a2a2a; border-radius: 3px; }
+    .agent-bar-fill { height: 100%; border-radius: 3px; background: #818cf8; }
+    .agent-bar-cost { width: 60px; text-align: right; color: #e8e8e8;
+                      font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <h1>Culinary AI</h1>
+
+  <div class="grid">
+    <!-- LLM Cost card -->
+    <div class="card" id="cost-card">
+      <h2>LLM cost this week</h2>
+      <p class="loading">Loading…</p>
+    </div>
+
+    <!-- SLO card -->
+    <div class="card" id="slo-card">
+      <h2>SLOs</h2>
+      <p class="loading">Loading…</p>
+    </div>
+
+    <!-- Budget card -->
+    <div class="card" id="budget-card">
+      <h2>This week's budget</h2>
+      <p class="loading">Loading…</p>
+    </div>
+
+    <!-- Pipeline card -->
+    <div class="card" id="pipeline-card">
+      <h2>Pipeline</h2>
+      <p class="loading">Loading…</p>
+    </div>
+
+    <!-- Queue card -->
+    <div class="card" id="queue-card">
+      <h2>In production</h2>
+      <p class="loading">Loading…</p>
+    </div>
+
+    <!-- Weekly insights card -->
+    <div class="card" id="report-card">
+      <h2>Weekly insights</h2>
+      <p class="loading">Loading…</p>
+    </div>
+
+    <!-- Grocery list card -->
+    <div class="card" id="grocery-card">
+      <h2>Grocery list <span id="grocery-week" style="font-weight:400;color:#555;text-transform:none;letter-spacing:0"></span></h2>
+      <p class="loading">Loading…</p>
+    </div>
+  </div>
+
+  <div class="links">
+    <a href="/docs" target="_blank">API docs</a> &nbsp;·&nbsp;
+    <a href="/calendar.ics">Download calendar (.ics)</a>
+  </div>
+
+  <script>
+    const API = window.location.origin.includes('8000') ? '' : 'http://localhost:8000';
+
+    function thisMonday() {
+      const d = new Date();
+      // getDay(): 0=Sun,1=Mon,...,6=Sat — roll back to most recent Monday
+      const day = d.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      d.setDate(d.getDate() + diff);
+      // Use local date parts to avoid UTC offset shifting the day
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${dd}`;
+    }
+
+    async function loadSummary() {
+      const res = await fetch(`${API}/dashboard/summary`);
+      const d = await res.json();
+
+      // Budget
+      const b = d.budget;
+      const pct = Math.min(100, (b.planned_spend / b.budget_limit) * 100);
+      const cls = pct > 100 ? 'over' : pct > 80 ? 'warn' : '';
+      document.getElementById('budget-card').innerHTML = `
+        <h2>Budget — week of ${b.week_id}</h2>
+        <div class="budget-bar"><div class="budget-bar-fill ${cls}" style="width:${pct}%"></div></div>
+        <div class="stat">Planned <span>$${b.planned_spend.toFixed(2)}</span></div>
+        <div class="stat">Actual <span>$${b.actual_spend.toFixed(2)}</span></div>
+        <div class="stat">Limit <span>$${b.budget_limit.toFixed(2)}</span></div>
+        <div class="stat">Remaining <span>$${(b.budget_limit - b.planned_spend).toFixed(2)}</span></div>
+      `;
+
+      // Pipeline
+      const order = ['IDEA','SCRIPT','SHOT','EDIT','QC','READY','SCHEDULED','PUBLISHED'];
+      const badges = order.map(s => d.pipeline[s]
+        ? `<span class="badge ${s}">${s} ${d.pipeline[s]}</span>` : '').join('');
+      document.getElementById('pipeline-card').innerHTML =
+        `<h2>Pipeline</h2><div style="margin-top:4px">${badges || '<span style="color:#555">No videos yet</span>'}</div>`;
+
+      // Queue
+      const items = d.queue.map(v =>
+        `<div class="queue-item"><div class="queue-title">${v.title}</div>
+         <span class="badge ${v.status}">${v.status}</span></div>`
+      ).join('');
+      document.getElementById('queue-card').innerHTML =
+        `<h2>In production</h2>${items || '<p style="color:#555;font-size:.85rem">Nothing in progress</p>'}`;
+    }
+
+    async function loadGrocery() {
+      const monday = thisMonday();
+      document.getElementById('grocery-week').textContent = monday;
+      try {
+        const res = await fetch(`${API}/armand/grocery-list/${monday}`);
+        const d = await res.json();
+        if (!d.items || d.items.length === 0) {
+          document.getElementById('grocery-card').innerHTML =
+            `<h2>Grocery list <small style="color:#555;font-size:.75rem;font-weight:400">${monday}</small></h2>
+             <p style="color:#555;font-size:.85rem">No shopping needed this week.</p>`;
+          return;
+        }
+        const rows = d.items.map(i =>
+          `<div class="grocery-item">
+            <span>${i.name} <small style="color:#555">${i.to_buy} ${i.unit || ''}</small></span>
+            <span class="cost">$${i.estimated_cost.toFixed(2)}</span>
+           </div>`
+        ).join('');
+        document.getElementById('grocery-card').innerHTML =
+          `<h2>Grocery list <small style="color:#555;font-size:.75rem;font-weight:400">${monday}</small></h2>
+           ${rows}
+           <div class="stat" style="margin-top:8px;font-weight:600">Total <span>$${d.total_estimated_cost.toFixed(2)}</span></div>`;
+      } catch (e) {
+        document.getElementById('grocery-card').innerHTML =
+          `<h2>Grocery list</h2><p class="loading">Could not load.</p>`;
+      }
+    }
+
+    async function loadReport() {
+      const monday = thisMonday();
+      try {
+        const res = await fetch(`${API}/etienne/report/${monday}`);
+        const d = await res.json();
+        if (!d.insights || d.insights.length === 0) {
+          document.getElementById('report-card').innerHTML =
+            '<h2>Weekly insights</h2><p style="color:#555;font-size:.85rem">No data yet.</p>';
+          return;
+        }
+        const insightRows = d.insights.map(i =>
+          `<div style="padding:5px 0;border-bottom:1px solid #222;font-size:.85rem">${i}</div>`
+        ).join('');
+        const recRows = d.recommendations.map(r =>
+          `<div style="padding:4px 0;font-size:.8rem;color:#aaa">${r}</div>`
+        ).join('');
+        document.getElementById('report-card').innerHTML = `
+          <h2>Weekly insights <small style="color:#555;font-size:.75rem;font-weight:400">${monday}</small></h2>
+          <div style="margin-bottom:10px">${insightRows}</div>
+          <div style="color:#888;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;margin:8px 0 4px">Recommendations</div>
+          ${recRows}
+          <div class="stat" style="margin-top:8px">Views <span>${d.total_views.toLocaleString()}</span></div>
+          <div class="stat">Avg retention <span>${d.avg_retention_pct.toFixed(1)}%</span></div>
+        `;
+      } catch (e) {
+        document.getElementById('report-card').innerHTML =
+          '<h2>Weekly insights</h2><p class="loading">Could not load.</p>';
+      }
+    }
+
+    async function loadCosts() {
+      try {
+        const res = await fetch(`${API}/observability/costs`);
+        const d = await res.json();
+        const total = d.total_cost_usd || 0;
+        const agents = (d.by_agent || []).sort((a, b) => b.cost_usd - a.cost_usd);
+        const maxCost = agents.reduce((m, a) => Math.max(m, a.cost_usd), 0.0001);
+        const rows = agents.length > 0
+          ? agents.map(a => {
+              const pct = Math.round((a.cost_usd / maxCost) * 100);
+              return `<div class="agent-bar-row">
+                <div class="agent-bar-label">${a.agent}</div>
+                <div class="agent-bar-track"><div class="agent-bar-fill" style="width:${pct}%"></div></div>
+                <div class="agent-bar-cost">$${a.cost_usd.toFixed(4)}</div>
+              </div>`;
+            }).join('')
+          : '<p style="color:#555;font-size:.85rem">No LLM calls recorded yet.</p>';
+        document.getElementById('cost-card').innerHTML = `
+          <h2>LLM cost this week</h2>
+          <div class="stat" style="margin-bottom:10px">Total <span>$${total.toFixed(4)}</span></div>
+          ${rows}`;
+      } catch (e) {
+        document.getElementById('cost-card').innerHTML =
+          '<h2>LLM cost this week</h2><p class="loading">Could not load.</p>';
+      }
+    }
+
+    async function loadSlos() {
+      try {
+        const res = await fetch(`${API}/observability/slo`);
+        const slos = await res.json();
+        const rows = slos.map(s => {
+          const dotClass = s.passing ? 'pass' : 'fail';
+          const val = s.current_value !== null && s.current_value !== undefined
+            ? (typeof s.current_value === 'number' ? s.current_value.toLocaleString(undefined, {maximumFractionDigits: 1}) : s.current_value)
+            : '—';
+          const unit = s.unit === 'percent' ? '%' : s.unit === 'ms' ? ' ms' :
+                       s.unit === 'usd' ? ' USD' : ` ${s.unit}`;
+          return `<div class="slo-row">
+            <div class="slo-dot ${dotClass}"></div>
+            <div class="slo-label">${s.description}</div>
+            <div class="slo-value">${val}${unit}</div>
+          </div>`;
+        }).join('');
+        document.getElementById('slo-card').innerHTML = `<h2>SLOs</h2>${rows}`;
+      } catch (e) {
+        document.getElementById('slo-card').innerHTML =
+          '<h2>SLOs</h2><p class="loading">Could not load.</p>';
+      }
+    }
+
+    loadSummary().catch(() => {
+      document.getElementById('budget-card').innerHTML = '<h2>Budget</h2><p class="loading">API unreachable</p>';
+      document.getElementById('pipeline-card').innerHTML = '<h2>Pipeline</h2><p class="loading">API unreachable</p>';
+      document.getElementById('queue-card').innerHTML = '<h2>In production</h2><p class="loading">API unreachable</p>';
+      document.getElementById('report-card').innerHTML = '<h2>Weekly insights</h2><p class="loading">API unreachable</p>';
+      document.getElementById('cost-card').innerHTML = '<h2>LLM cost this week</h2><p class="loading">API unreachable</p>';
+      document.getElementById('slo-card').innerHTML = '<h2>SLOs</h2><p class="loading">API unreachable</p>';
+    });
+    loadReport();
+    loadGrocery();
+    loadCosts();
+    loadSlos();
+  </script>
+</body>
+</html>
