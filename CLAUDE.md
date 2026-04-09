@@ -160,6 +160,119 @@ Each agent lives in `services/agents/<name>/main.py` and exposes a single public
 - Celery background job queue — not yet wired
 - Qdrant vector DB for brand-voice style memory — not yet wired
 
+---
+
+## Content System
+
+This section is consumed by agents at runtime — not documentation. When building or modifying agent prompts, reference these specs directly.
+
+### Brand identity
+
+Applies to: **Colette** (style validator), **Marcel** (tone guardrails), **Lucien** (caption output).
+
+- **Differentiator:** French-Vietnamese intersection. No one owns this in short-format. Colette's style check must assert this POV is present or at minimum not contradicted.
+- **Voice:** Precise, minimal, no performative enthusiasm. The food speaks. Colette rejects scripts using filler superlatives ("amazing", "incredible", "you'll love this").
+- **Audience:** Home cooks who want to cook better, not just follow recipes.
+- **Location:** Montreal. Local market specificity is an asset.
+- **Languages:** English primary. French-language caption variant required on every Release Packet (Lucien's responsibility).
+
+### Content pillars
+
+Applies to: **Julien** (IdeaCard tagging).
+
+Julien must tag every IdeaCard with one pillar. No more than 2 consecutive IdeaCards from the same pillar in the weekly slate.
+
+| Pillar | Description |
+|--------|-------------|
+| **Technique** | How to do something correctly — French classical base (stocks, emulsions, knife work, heat control) |
+| **Ingredient** | Deep dive on one ingredient: origin, function, substitutes (fish sauce, beurre noisette, galangal, etc.) |
+| **Dish** | Full recipe with origin and rationale — why this dish works |
+| **Process** | Behind the scenes, failures, learning in public — show the journey not just the result |
+| **Opinion** | Conviction posts: food culture takes, cooking myths, industry critique. Post even when expected to flop. |
+
+### Hook library
+
+Applies to: **Marcel** (proposes 3 hook options per script, drawn from these formats).
+
+Étienne tracks retention by hook format weekly. Marcel must reference the latest memo when ranking options.
+
+**Secret/Forbidden** (high comment rate):
+- "This technique restaurants don't want you to know"
+- "The flavor trick that feels illegal"
+- "Chefs are hiding THIS from home cooks"
+
+**Contrast** (high save rate):
+- "1 hour vs 10 minutes — same result"
+- "Why your sauce breaks (and how to stop it)"
+- "The difference between good and great [technique/ingredient]"
+
+**Cultural bridge** (priority — use at least 1x/week; this is the differentiator):
+- "French technique, Vietnamese soul"
+- "What Indochine taught both cuisines"
+- "This dish exists because of colonialism. Let's make it."
+
+**Direct** (high share rate):
+- "You've been doing this wrong"
+- "3 ingredients. That's it."
+- "Stop buying this. Make it."
+
+### Caption formula
+
+Applies to: **Lucien** (output per platform, per language).
+
+```
+[Hook — 1 line, from approved hook variant]
+[What was made — 1 line, factual]
+Comment RECETTE and I'll send you the full recipe.
+[3–5 hashtags, platform-appropriate]
+```
+
+French variant follows the same formula. Trigger word `RECETTE` is identical in both languages.
+
+### ManyChat trigger config
+
+Applies to: **Lucien** — include a `manychat_config` block in every `ReleasePacket`.
+
+| Trigger | DM content | Post type |
+|---------|-----------|-----------|
+| `RECETTE` | Recipe card image (dish name, measurements, serves, time) | Every cooking reel |
+| `METHODE` | Step-by-step technique breakdown | Technique pillar posts |
+| `TOOLS` | Kitchen gear list | Equipment/process posts |
+
+Add `manychat_config: Optional[Dict]` to `ReleasePacket` schema:
+```json
+{
+  "trigger_word": "RECETTE",
+  "dm_content_type": "image",
+  "dm_content_description": "Recipe card for [dish name] with full measurements",
+  "platforms": ["instagram", "tiktok"]
+}
+```
+
+### Étienne — analytics targets
+
+Collect per video: 3s retention, 10s retention, 50% retention, 100% retention, CTR per title/cover variant, comment sentiment, save rate, share rate, ManyChat trigger conversion rate (comments → DM opens).
+
+Friday 1-pager must include:
+1. Best and worst performer of the week with a hypothesis
+2. Two hook-format experiments for next week
+3. Hook format performance ranking, updated
+4. Budget actuals vs planned (from Armand)
+5. ManyChat conversion rate per trigger word
+
+### Filming constraints
+
+Applies to: **Camille** (Shoot Card generation).
+
+- Hardware: iPhone 11, tripod, lav mic, one LED panel
+- Filming window: 16:30–18:00 daily; Thursday 16:30–17:30
+- Camille generates a shorter shot list on Thursdays automatically
+- Required angles per recipe: overhead, 45°, macro — all three
+- No synthetic voice, no AI avatars
+- Shoot Card includes a `secondary_capture: bool` field — true when the session should also be recorded for Process pillar behind-the-scenes content
+
+---
+
 ## Runbooks
 
 ### DB Down
@@ -193,6 +306,10 @@ Each agent lives in `services/agents/<name>/main.py` and exposes a single public
 - `alembic upgrade head` exits non-zero
 - `GET /health` returns `"migrations": null` or shows an outdated revision
 - API returns 500 on first DB-touching request
+
+## Skills
+When building or modifying Dashboard UI: follow .claude/skills/frontend-design.md
+When writing or reviewing agent code: follow .claude/skills/impeccable.md
 
 **Rollback steps**
 1. `cd infra && alembic current` — identify current revision
