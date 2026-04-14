@@ -56,6 +56,7 @@ from services.shared.repo import (
     get_recipe_with_ingredients,
     get_or_create_ledger_week,
     get_grocery_list as repo_get_grocery_list,
+    save_purchase,
     record_request_log,
     get_cost_summary,
     get_latency_summary,
@@ -369,8 +370,8 @@ def pipeline_get(run_id: int):
     return row
 
 @app.get("/videos")
-def videos_list():
-    return list_videos()
+def videos_list(status: str | None = None):
+    return list_videos(status=status)
 
 @app.get("/videos/{video_id}")
 def video_get(video_id: str):
@@ -751,3 +752,107 @@ def observability_latency():
 @app.get("/observability/slo")
 def observability_slo():
     return get_slo_status()
+
+
+@app.get("/observability/agents")
+def observability_agents():
+    from services.shared.repo import get_agent_status
+    return get_agent_status()
+
+
+# ── Armand: simple purchase log (JSON, no file upload) ────────────────────────
+
+class PurchaseCreate(BaseModel):
+    store: str = "unknown"
+    total: float
+    items: List[dict] = []
+
+
+@app.post("/armand/purchase")
+def armand_log_purchase(body: PurchaseCreate):
+    from datetime import datetime, timezone
+    try:
+        purchase_id = save_purchase(
+            datetime.now(timezone.utc), body.store, body.items, body.total
+        )
+        return {"id": purchase_id, "store": body.store, "total": body.total}
+    except Exception:
+        _log.exception("Error in armand_log_purchase")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# ── Pipeline: latest run ───────────────────────────────────────────────────────
+
+@app.get("/pipeline/runs/latest")
+def pipeline_runs_latest():
+    try:
+        from services.shared.db import SessionLocal
+        from services.shared.models import PipelineRun
+        with SessionLocal() as session:
+            row = session.query(PipelineRun).order_by(PipelineRun.id.desc()).first()
+            if not row:
+                raise HTTPException(status_code=404, detail="no pipeline runs found")
+            return {
+                "id": row.id,
+                "kind": row.kind,
+                "idea": row.idea,
+                "scripts": row.scripts,
+                "shoot_card": row.shoot_card,
+                "created_at": row.created_at.isoformat(),
+            }
+    except HTTPException:
+        raise
+    except Exception:
+        _log.exception("Error in pipeline_runs_latest")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# ── Etienne: hook rankings (hook library with performance context) ─────────────
+
+@app.get("/etienne/hook-rankings")
+def etienne_hook_rankings():
+    return {
+        "formats": [
+            {
+                "name": "Cultural bridge",
+                "priority": "1× minimum / week",
+                "metric": "differentiator",
+                "note": "No one owns this space in short-format.",
+                "examples": [
+                    "French technique, Vietnamese soul",
+                    "What Indochine taught both cuisines",
+                    "This dish exists because of colonialism. Let's make it.",
+                ],
+            },
+            {
+                "name": "Secret / Forbidden",
+                "priority": "high",
+                "metric": "comment rate",
+                "examples": [
+                    "This technique restaurants don't want you to know",
+                    "The flavor trick that feels illegal",
+                    "Chefs are hiding THIS from home cooks",
+                ],
+            },
+            {
+                "name": "Contrast",
+                "priority": "high",
+                "metric": "save rate",
+                "examples": [
+                    "1 hour vs 10 minutes — same result",
+                    "Why your sauce breaks (and how to stop it)",
+                    "The difference between good and great",
+                ],
+            },
+            {
+                "name": "Direct",
+                "priority": "medium",
+                "metric": "share rate",
+                "examples": [
+                    "You've been doing this wrong",
+                    "3 ingredients. That's it.",
+                    "Stop buying this. Make it.",
+                ],
+            },
+        ]
+    }

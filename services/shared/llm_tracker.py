@@ -9,9 +9,19 @@ _log = logging.getLogger(__name__)
 
 # Per-model pricing: (input_per_million_usd, output_per_million_usd)
 _MODEL_RATES: dict[str, tuple[float, float]] = {
+    # Anthropic
     "claude-haiku-4-5-20251001":  (0.80,  4.00),
     "claude-sonnet-4-6":          (3.00, 15.00),
     "claude-sonnet-4-6-20251101": (3.00, 15.00),
+    # Local / Ollama — zero cost
+    "qwen2.5:7b":        (0.0, 0.0),
+    "qwen2.5:14b":       (0.0, 0.0),
+    "qwen2.5:32b":       (0.0, 0.0),
+    "qwen2.5-coder:7b":  (0.0, 0.0),
+    "qwen2.5-coder:14b": (0.0, 0.0),
+    "qwen2.5-coder:32b": (0.0, 0.0),
+    "mistral-nemo":      (0.0, 0.0),
+    "llama3.3:70b":      (0.0, 0.0),
 }
 _DEFAULT_RATES = (3.00, 15.00)
 

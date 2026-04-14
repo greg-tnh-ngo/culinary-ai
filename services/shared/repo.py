@@ -170,9 +170,12 @@ def save_idea_draft(idea: dict) -> str:
     return with_retry(_run)
 
 
-def list_videos() -> list[dict]:
+def list_videos(status: str | None = None) -> list[dict]:
     with SessionLocal() as session:
-        rows = session.query(Video).order_by(Video.created_at.desc()).all()
+        q = session.query(Video).order_by(Video.created_at.desc())
+        if status:
+            q = q.filter(Video.status == status)
+        rows = q.all()
         return [
             {
                 "id": r.id,
@@ -770,3 +773,62 @@ def get_slo_status() -> list[dict]:
         })
 
     return results
+
+
+def get_agent_status() -> list[dict]:
+    """Return per-agent status derived from llm_calls table.
+
+    is_running = last call within the past 30 seconds.
+    """
+    from services.shared.models import LlmCall
+    from sqlalchemy import func
+    from datetime import timedelta
+
+    known_agents = ["julien", "marcel", "camille", "pierre", "colette", "armand", "etienne", "lucien"]
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    running_threshold = datetime.utcnow() - timedelta(seconds=30)
+
+    with SessionLocal() as session:
+        # Aggregate per-agent stats for last 7 days
+        rows = (
+            session.query(
+                LlmCall.agent,
+                func.max(LlmCall.created_at).label("last_call_at"),
+                func.count(LlmCall.id).label("call_count_7d"),
+                func.count(LlmCall.id).filter(LlmCall.succeeded.is_(True)).label("succeeded_count"),
+                func.sum(LlmCall.cost_usd).filter(LlmCall.created_at >= today_start).label("cost_today"),
+            )
+            .filter(LlmCall.created_at >= seven_days_ago)
+            .group_by(LlmCall.agent)
+            .all()
+        )
+
+        by_agent = {r.agent: r for r in rows}
+        result = []
+        for agent in known_agents:
+            r = by_agent.get(agent)
+            if r:
+                last_call_at = r.last_call_at
+                call_count_7d = r.call_count_7d
+                succeeded = r.succeeded_count or 0
+                success_rate = round((succeeded / call_count_7d) * 100, 1) if call_count_7d else 100.0
+                is_running = last_call_at is not None and last_call_at >= running_threshold
+                cost_today = round(float(r.cost_today or 0), 6)
+            else:
+                last_call_at = None
+                call_count_7d = 0
+                success_rate = 100.0
+                is_running = False
+                cost_today = 0.0
+
+            result.append({
+                "agent": agent,
+                "last_call_at": last_call_at.isoformat() + "Z" if last_call_at else None,
+                "is_running": is_running,
+                "call_count_7d": call_count_7d,
+                "success_rate_7d": success_rate,
+                "cost_usd_today": cost_today,
+            })
+
+        return result

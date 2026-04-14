@@ -6,14 +6,14 @@ from services.shared.db import _cfg
 
 _log = logging.getLogger(__name__)
 try:
-    import anthropic as _anthropic_mod
-    _API_KEY = _cfg.ANTHROPIC_API_KEY
-    _LLM_AVAILABLE = bool(_API_KEY)
-    _CLIENT = _anthropic_mod.Anthropic(api_key=_API_KEY) if _LLM_AVAILABLE else None
+    from services.shared.llm_client import get_llm as _get_llm
     from services.shared.llm_tracker import tracked_create as _tracked_create
-except ImportError:
-    _LLM_AVAILABLE = False
-    _CLIENT = None
+    _CLIENT, _MODEL = _get_llm("marcel")                   # sonnet-tier: scripts
+    _CLIENT_FAST, _MODEL_FAST = _get_llm("marcel", tier="fast")  # haiku-tier: chapters
+    _LLM_AVAILABLE = _CLIENT is not None
+except Exception:
+    _CLIENT, _MODEL, _LLM_AVAILABLE = None, "claude-sonnet-4-6", False
+    _CLIENT_FAST, _MODEL_FAST = None, "claude-haiku-4-5-20251001"
     _tracked_create = None
 
 
@@ -117,8 +117,8 @@ def _chapters_stub(idea: Dict) -> List[Chapter]:
 def _chapters_llm(idea: Dict, script_body: str) -> List[Chapter]:
     dish = idea.get("dish", idea.get("title", "French dish"))
     try:
-        msg = _tracked_create(_CLIENT, "marcel/chapters",
-            model="claude-haiku-4-5-20251001",
+        msg = _tracked_create(_CLIENT_FAST, "marcel/chapters",
+            model=_MODEL_FAST,
             max_tokens=1024,
             system=(
                 "You are Marcel, scriptwriter for a solo French cooking channel. "
@@ -148,7 +148,7 @@ def _write_scripts_llm(idea: Dict, personal_prompts: Optional[Dict] = None) -> L
 
     messages = [{"role": "user", "content": user_msg}]
     msg = _tracked_create(_CLIENT, "marcel/write_scripts",
-        model="claude-sonnet-4-6",
+        model=_MODEL,
         max_tokens=4096,
         system=_SYSTEM_PROMPT,
         messages=messages,
@@ -163,7 +163,7 @@ def _write_scripts_llm(idea: Dict, personal_prompts: Optional[Dict] = None) -> L
             {"role": "user", "content": "Your previous response was not valid JSON. Return only the JSON object, nothing else."},
         ]
         msg2 = _tracked_create(_CLIENT, "marcel/write_scripts_retry",
-            model="claude-sonnet-4-6",
+            model=_MODEL,
             max_tokens=4096,
             system=_SYSTEM_PROMPT,
             messages=messages,

@@ -1,0 +1,160 @@
+# Agent model routing config
+#
+# ── Switching profiles ────────────────────────────────────────────────────────
+# Change active_profile to "anthropic" or "ollama" to switch all agents at once.
+# Restart the API after changing this file.
+
+active_profile = "groq"
+
+[defaults]
+ollama_base_url = "http://localhost:11434/v1"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROFILE: anthropic — all agents on Anthropic API
+# ══════════════════════════════════════════════════════════════════════════════
+
+[profiles.anthropic.agents.julien]
+backend = "anthropic"
+model   = "claude-haiku-4-5-20251001"
+
+[profiles.anthropic.agents.camille]
+backend = "anthropic"
+model   = "claude-haiku-4-5-20251001"
+
+[profiles.anthropic.agents.pierre]
+backend = "anthropic"
+model   = "claude-haiku-4-5-20251001"
+
+[profiles.anthropic.agents.etienne]
+backend = "anthropic"
+model   = "claude-haiku-4-5-20251001"
+
+[profiles.anthropic.agents.lucien]
+backend = "anthropic"
+model   = "claude-haiku-4-5-20251001"
+
+[profiles.anthropic.agents.colette]
+backend = "anthropic"
+model   = "claude-sonnet-4-6"
+
+[profiles.anthropic.agents.marcel]
+backend = "anthropic"
+model   = "claude-sonnet-4-6"
+
+[profiles.anthropic.agents.marcel.fast]
+backend = "anthropic"
+model   = "claude-haiku-4-5-20251001"
+
+[profiles.anthropic.agents.armand]
+backend = "anthropic"
+model   = "claude-sonnet-4-6"
+
+[profiles.anthropic.agents.armand.fast]
+backend = "anthropic"
+model   = "claude-haiku-4-5-20251001"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROFILE: groq — all agents on Groq free tier (fast, cloud, no cost)
+#
+# Prerequisites:
+#   1. Sign up at console.groq.com
+#   2. Create an API key → add GROQ_API_KEY=gsk_... to .env
+#   3. No local setup needed — restart the API and you're live
+#
+# Model options (free tier):
+#   llama-3.3-70b-versatile   — best quality, 70B, 200+ tok/s
+#   llama-3.1-8b-instant      — fastest, lightest
+#   mixtral-8x7b-32768        — long context (32K)
+# ══════════════════════════════════════════════════════════════════════════════
+
+[profiles.groq.agents.julien]
+backend = "groq"
+model   = "llama-3.3-70b-versatile"
+
+[profiles.groq.agents.camille]
+backend = "groq"
+model   = "llama-3.3-70b-versatile"
+
+[profiles.groq.agents.pierre]
+backend = "groq"
+model   = "llama-3.3-70b-versatile"
+
+[profiles.groq.agents.etienne]
+backend = "groq"
+model   = "llama-3.3-70b-versatile"
+
+[profiles.groq.agents.lucien]
+backend = "groq"
+model   = "llama-3.3-70b-versatile"
+
+[profiles.groq.agents.colette]
+backend = "groq"
+model   = "llama-3.3-70b-versatile"
+
+[profiles.groq.agents.marcel]
+backend = "groq"
+model   = "llama-3.3-70b-versatile"
+
+[profiles.groq.agents.marcel.fast]
+backend = "groq"
+model   = "llama-3.1-8b-instant"
+
+[profiles.groq.agents.armand]
+backend = "groq"
+model   = "llama-3.3-70b-versatile"
+
+[profiles.groq.agents.armand.fast]
+backend = "groq"
+model   = "llama-3.1-8b-instant"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROFILE: ollama — all agents on local Ollama (8GB M2 optimised)
+#
+# Prerequisites before switching to this profile:
+#   1. brew install ollama
+#   2. ollama serve          (keep this terminal open)
+#   3. ollama pull qwen2.5:7b
+# ══════════════════════════════════════════════════════════════════════════════
+
+[profiles.ollama.agents.julien]
+backend = "ollama"
+model   = "qwen2.5:7b"
+
+[profiles.ollama.agents.camille]
+backend = "ollama"
+model   = "qwen2.5:7b"
+
+[profiles.ollama.agents.pierre]
+backend = "ollama"
+model   = "qwen2.5:7b"
+
+[profiles.ollama.agents.etienne]
+backend = "ollama"
+model   = "qwen2.5:7b"
+
+[profiles.ollama.agents.lucien]
+backend = "ollama"
+model   = "qwen2.5:7b"
+
+[profiles.ollama.agents.colette]
+backend = "ollama"
+model   = "qwen2.5:7b"
+
+[profiles.ollama.agents.marcel]
+backend = "ollama"
+model   = "qwen2.5:7b"
+
+[profiles.ollama.agents.marcel.fast]
+backend = "ollama"
+model   = "qwen2.5:7b"
+
+[profiles.ollama.agents.armand]
+backend = "ollama"
+model   = "qwen2.5:7b"
+
+[profiles.ollama.agents.armand.fast]
+backend = "ollama"
+model   = "qwen2.5:7b"

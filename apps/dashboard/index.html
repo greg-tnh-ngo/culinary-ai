@@ -3,1471 +3,2445 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Culinary AI — Dashboard</title>
+  <title>Culinary AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,400;1,400;1,600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f0f0f;
-      --surface: #1a1a1a;
-      --surface2: #222;
-      --border: #2a2a2a;
-      --accent: #818cf8;
-      --accent-dim: #4f46e5;
-      --text: #e8e8e8;
-      --muted: #888;
-      --muted-dark: #555;
-      --link: #60a5fa;
-      --danger: #ef4444;
-      --success: #22c55e;
-      --warn: #f59e0b;
-      --mono: ui-monospace, 'JetBrains Mono', monospace;
+      --bg: #0C0B0A;
+      --surface: #161513;
+      --surface2: #1E1C1A;
+      --border: #2A2620;
+      --text: #F0EAD8;
+      --muted: #7A7060;
+      --accent: #C4783C;
+      --accent-dim: #8A5228;
+      --blue: #5B8DB8;
+      --panel-width: 280px;
+      --toggle-w: 24px;
+      --mono: 'DM Mono', ui-monospace, monospace;
+      --serif: 'Cormorant Garamond', Georgia, serif;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 12px; }
 
-    /* ── Top bar ──────────────────────────── */
-    .topbar { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 100; }
-    .topbar-logo { font-size: 1rem; font-weight: 700; color: #fff; white-space: nowrap; }
-    .topbar-logo span { color: var(--accent); }
-
-    /* ── Tab nav ──────────────────────────── */
-    .tabnav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; }
-    .tabnav::-webkit-scrollbar { display: none; }
-    .tab-btn { padding: 6px 14px; border-radius: 999px; border: none; background: transparent; color: var(--muted); font-size: 0.82rem; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; font-family: inherit; }
-    .tab-btn:hover { background: var(--surface2); color: var(--text); }
-    .tab-btn.active { background: var(--accent); color: #fff; }
-
-    /* ── Tab panels ───────────────────────── */
-    .tab-panel { display: none; padding: 20px; }
-    .tab-panel.active { display: block; }
-
-    /* ── Cards / grid ─────────────────────── */
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
-    .card-title { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 12px; }
-
-    /* ── Common elements ──────────────────── */
-    .stat { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); padding: 5px 0; border-bottom: 1px solid var(--surface2); }
-    .stat:last-child { border-bottom: none; }
-    .stat span { color: var(--text); font-variant-numeric: tabular-nums; }
-    .stat--total { margin-top: 8px; font-weight: 600; }
-    .stat--spaced { margin-bottom: 10px; }
-
-    /* ── Badges ───────────────────────────── */
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; background: var(--border); color: #aaa; }
-    .badge.IDEA      { background: #1e3a5f; color: #60a5fa; }
-    .badge.SCRIPT    { background: #1e3a2a; color: #4ade80; }
-    .badge.SHOT      { background: #2a2a2a; color: #aaa; }
-    .badge.EDIT      { background: #2a2a2a; color: #aaa; }
-    .badge.QC        { background: #3a2a1e; color: #fb923c; }
-    .badge.READY     { background: #2a2a2a; color: #aaa; }
-    .badge.SCHEDULED { background: #2a1e3a; color: #c084fc; }
-    .badge.PUBLISHED { background: #1e2a1e; color: #86efac; }
-    .badge.SHORT     { background: #1e2a3a; color: #7dd3fc; }
-    .badge.LONG      { background: #2d1e3a; color: #d8b4fe; }
-
-    .loading { color: var(--muted-dark); font-size: 0.85rem; }
-    .empty { color: var(--muted); font-size: 0.85rem; padding: 12px 0; }
-
-    /* ── Buttons ──────────────────────────── */
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.82rem; font-weight: 500; font-family: inherit; transition: opacity 0.15s; }
-    .btn:hover { opacity: 0.85; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-danger  { background: #7f1d1d; color: #fca5a5; }
-    .btn-ghost   { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-    .btn-sm { padding: 4px 10px; font-size: 0.78rem; }
-
-    /* ── Links ────────────────────────────── */
-    .link { color: var(--link); text-decoration: none; }
-    .link:hover { text-decoration: underline; }
-
-    /* ── Utility ──────────────────────────── */
-    .hidden { display: none; }
-    .mono { font-family: var(--mono); }
-    .th-right { text-align: right; }
-    .cell-pad { padding: 16px 12px; }
-    .footer-meta { margin-top: 16px; font-size: 0.8rem; color: var(--muted-dark); }
-
-    /* ── Budget bar ───────────────────────── */
-    .budget-bar { height: 8px; background: var(--border); border-radius: 4px; margin: 10px 0; overflow: hidden; }
-    .budget-bar-fill { height: 100%; border-radius: 4px; background: var(--success); transition: width 0.4s, background-color 0.3s; }
-    .budget-bar-fill.warn { background: var(--warn); }
-    .budget-bar-fill.over { background: var(--danger); }
-
-    /* ── SLO dots ─────────────────────────── */
-    .slo-row { display: flex; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--surface2); font-size: 0.85rem; gap: 8px; }
-    .slo-row:last-child { border-bottom: none; }
-    .slo-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .slo-dot.pass { background: var(--success); }
-    .slo-dot.fail { background: var(--danger); }
-    .slo-desc { flex: 1; font-size: .85rem; }
-    .slo-val { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
-
-    /* ── Agent cost bars ──────────────────── */
-    .agent-bar-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--surface2); font-size: 0.82rem; }
-    .agent-bar-row:last-child { border-bottom: none; }
-    .agent-bar-label { width: 110px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .agent-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; }
-    .agent-bar-fill  { height: 100%; border-radius: 3px; background: var(--accent); }
-    .agent-bar-cost  { width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
-    .agent-bar-cost-detail { font-size: .8rem; }
-    .agent-call-count { color: var(--muted); }
-
-    /* ── Grocery rows ─────────────────────── */
-    .grocery-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--surface2); font-size: 0.85rem; }
-    .grocery-item:last-child { border-bottom: none; }
-    .item-qty { color: var(--muted-dark); }
-    .grocery-budget-header { display: flex; justify-content: space-between; font-size: .82rem; color: var(--muted); margin-bottom: 4px; }
-    .grocery-budget-bar-wrap { margin-top: 12px; }
-    .grocery-actions { margin-top: 12px; display: flex; gap: 8px; }
-
-    /* ── Kanban board ─────────────────────── */
-    .kanban { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; min-height: 400px; }
-    .kanban-col { flex: 0 0 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; }
-    .kanban-col-header { padding: 10px 12px 8px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .kanban-col-count { background: var(--border); color: var(--muted); border-radius: 999px; padding: 1px 7px; font-size: 0.7rem; }
-    .kanban-cards { padding: 8px; display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto; max-height: 600px; }
-    .kanban-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 10px; cursor: pointer; transition: border-color 0.15s; }
-    .kanban-card:hover { border-color: var(--accent); }
-    .kanban-card-title { font-size: 0.82rem; font-weight: 500; line-height: 1.3; margin-bottom: 6px; }
-    .kanban-card-meta  { font-size: 0.72rem; color: var(--muted); }
-    .kanban-col-footer { padding: 6px 8px; border-top: 1px solid var(--border); }
-    .kanban-add-btn { width: 100%; justify-content: center; color: var(--muted); border-color: transparent; background: transparent; }
-    .kanban-add-btn:hover { color: var(--text); background: var(--surface2); border-color: var(--border); opacity: 1; }
-
-    /* ── Tables ───────────────────────────── */
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th { text-align: left; padding: 8px 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
-    td { padding: 9px 12px; border-bottom: 1px solid var(--surface2); vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
-    .td-actions { display: flex; gap: 6px; justify-content: flex-end; }
-    .endpoint-label { font-family: var(--mono); font-size: .78rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
-
-    /* ── Forms ────────────────────────────── */
-    .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
-    .form-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
-    .form-group--wide { flex: 2; }
-    .form-group label { font-size: 0.75rem; color: var(--muted); }
-    input[type=text], input[type=number], input[type=date], select, textarea {
-      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
-      color: var(--text); font-family: inherit; font-size: 0.85rem; padding: 7px 10px;
-      outline: none; width: 100%;
+    /* ── Layout ──────────────────────────────── */
+    #app {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
     }
-    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
-    textarea { resize: vertical; min-height: 80px; }
-    .input-date { width: 160px; }
-
-    /* ── Dialog (native) ──────────────────── */
-    dialog { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text); padding: 0; max-width: 640px; width: calc(100vw - 32px); max-height: calc(100vh - 80px); }
-    dialog[open] { display: flex; flex-direction: column; }
-    dialog::backdrop { background: rgba(0,0,0,0.7); }
-    .dialog-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-    .dialog-header h3 { font-size: 1rem; font-weight: 600; }
-    .dialog-body   { padding: 20px; overflow-y: auto; flex: 1; }
-    .dialog-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; }
-    .btn-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 4px; border-radius: 4px; }
-    .btn-close:hover { background: var(--surface2); color: var(--text); }
-    .confirm-msg { font-size: .9rem; line-height: 1.5; }
-
-    /* ── Video dialog ─────────────────────── */
-    .vd-badges { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-    .vd-feedback-box { margin-bottom: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: .83rem; }
-    .vd-feedback-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 4px; }
-    .vd-section { margin-bottom: 16px; }
-    .vd-section-row { display: flex; gap: 8px; align-items: center; }
-
-    /* ── Script blocks ────────────────────── */
-    .script-block { margin-bottom: 16px; }
-    .script-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
-    pre.script-body { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: inherit; font-size: 0.8rem; white-space: pre-wrap; word-break: break-word; line-height: 1.5; max-height: 250px; overflow-y: auto; }
-
-    /* ── Toast ────────────────────────────── */
-    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-    .toast { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; font-size: 0.85rem; min-width: 200px; max-width: 320px; pointer-events: auto; display: flex; align-items: center; gap: 10px; animation: slideIn 0.2s ease; }
-    .toast.success { border-left: 3px solid var(--success); }
-    .toast.error   { border-left: 3px solid var(--danger); }
-    @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-    /* ── Section toolbar ──────────────────── */
-    .section-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
-    .section-title { font-size: 1.1rem; font-weight: 600; }
-
-    /* ── Analytics chart ──────────────────── */
-    #analytics-chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
-    #analytics-chart { max-height: 280px; }
-
-    /* ── Overview ─────────────────────────── */
-    .queue-item { padding: 8px 0; border-bottom: 1px solid var(--surface2); font-size: 0.9rem; }
-    .queue-item:last-child { border-bottom: none; }
-    .queue-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .badge-row { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
-    .muted-label { color: var(--muted-dark); font-weight: 400; }
-
-    /* ── Report ───────────────────────────── */
-    .insights-list { margin-bottom: 10px; }
-    .insight-row { padding: 5px 0; border-bottom: 1px solid var(--surface2); font-size: .85rem; }
-    .insight-row:last-child { border-bottom: none; }
-    .rec-row { padding: 4px 0; font-size: .8rem; color: #aaa; }
-    .section-label { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 4px; }
-    .week-label { font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
-
-    /* ── Checkbox list ────────────────────── */
-    .check-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; }
-    .check-list label { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--surface2); font-size: 0.83rem; cursor: pointer; }
-    .check-list label:last-child { border-bottom: none; }
-    .check-list label:hover { background: rgba(255,255,255,0.03); }
-    .check-list input[type=number] { width: 70px; flex-shrink: 0; }
-    .ing-check-label { flex: 1; }
-    .ing-emoji { font-size: 1rem; flex-shrink: 0; width: 22px; text-align: center; }
-    .badge-shrink { flex-shrink: 0; }
-    .check-empty { color: var(--muted); padding: 10px; display: block; }
-
-    /* ══════════════════════════════════════════ */
-    /* ── Recipe cards ─────────────────────────── */
-    /* ══════════════════════════════════════════ */
-    .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
-    .recipe-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; transition: border-color 0.15s, transform 0.15s; cursor: default; }
-    .recipe-card:hover { border-color: var(--accent); transform: translateY(-1px); }
-    .recipe-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
-    .recipe-card-emoji { font-size: 2.2rem; line-height: 1; }
-    .recipe-card-name { font-size: 0.95rem; font-weight: 600; line-height: 1.35; color: var(--text); }
-    .recipe-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 18px; }
-    .recipe-card-sep { color: var(--muted-dark); font-size: 0.75rem; }
-    .recipe-card-time { font-size: 0.78rem; color: var(--muted); }
-    .recipe-card-ings { display: flex; flex-wrap: wrap; gap: 5px; font-size: 1.15rem; }
-    .recipe-card-ing { cursor: default; }
-    .recipe-card-actions { display: flex; gap: 6px; padding-top: 10px; border-top: 1px solid var(--border); margin-top: auto; }
-
-    /* difficulty dots on cards */
-    .diff-dots-display { display: flex; gap: 3px; align-items: center; }
-    .diff-dot-sm { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
-    .diff-dot-sm.on { background: var(--accent); }
-
-    /* ── Recipe form dialog ───────────────── */
-    .recipe-form-field { margin-bottom: 20px; }
-    .recipe-form-field:last-child { margin-bottom: 0; }
-    .recipe-field-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; display: block; }
-    .recipe-title-row { display: flex; align-items: center; gap: 12px; }
-    .recipe-form-emoji-preview { font-size: 2rem; line-height: 1; flex-shrink: 0; transition: transform 0.15s; }
-    .recipe-title-input { font-size: 1.05rem; font-weight: 500; padding: 10px 14px; flex: 1; }
-    .recipe-meta-row { display: flex; gap: 16px; flex-wrap: wrap; }
-    .recipe-meta-field { display: flex; flex-direction: column; gap: 8px; }
-
-    /* stream pill toggle */
-    .stream-picker { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-    .stream-pill { padding: 6px 14px; border: none; background: transparent; color: var(--muted); font-size: 0.8rem; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s, color 0.15s; line-height: 1.4; }
-    .stream-pill + .stream-pill { border-left: 1px solid var(--border); }
-    .stream-pill.active { background: var(--accent); color: #fff; }
-    .stream-pill:hover:not(.active) { background: var(--surface2); color: var(--text); }
-
-    /* difficulty dot picker */
-    .diff-picker { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
-    .diff-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); background: transparent; cursor: pointer; transition: border-color 0.15s, background 0.15s; padding: 0; flex-shrink: 0; }
-    .diff-dot.filled { background: var(--accent); border-color: var(--accent); }
-    .diff-dot:hover { border-color: var(--accent); }
-
-    /* time input with inline unit */
-    .time-input-wrap { position: relative; display: flex; align-items: center; }
-    .time-input-wrap input { padding-right: 40px; }
-    .time-unit { position: absolute; right: 10px; color: var(--muted); font-size: 0.82rem; pointer-events: none; }
-
-    /* checklist inside recipe form */
-    .recipe-ing-list { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; }
-    .recipe-ing-list label { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--surface2); font-size: 0.83rem; cursor: pointer; }
-    .recipe-ing-list label:last-child { border-bottom: none; }
-    .recipe-ing-list label:hover { background: rgba(255,255,255,0.03); }
-    .recipe-ing-list input[type=number] { width: 70px; flex-shrink: 0; }
-
-    /* ── Responsive ───────────────────────── */
-    @media (max-width: 600px) {
-      .topbar { padding: 10px 12px; }
-      .tab-panel { padding: 14px 12px; }
-      .kanban-col { flex: 0 0 165px; }
-      dialog { border-radius: 0; max-width: 100vw; width: 100vw; max-height: 100vh; margin: 0; }
-      .form-group { min-width: 100%; }
-      .recipe-grid { grid-template-columns: 1fr; }
+    #canvas-area {
+      flex: 1 1 0;
+      position: relative;
+      min-width: 0;
     }
+    #house {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      image-rendering: pixelated;
+    }
+    #ring-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* ── Side panel ──────────────────────────── */
+    #panel {
+      width: var(--panel-width);
+      flex-shrink: 0;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+    #panel.collapsed {
+      width: 0;
+      border-left-color: transparent;
+    }
+    #panel-toggle {
+      position: absolute;
+      left: -24px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 48px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-right: none;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 14px;
+      z-index: 20;
+      border-radius: 6px 0 0 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    #panel-toggle:hover { color: var(--text); background: var(--surface2); }
+    #panel.collapsed #panel-toggle { left: -24px; }
+    #panel-inner {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px;
+      min-width: var(--panel-width);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    #panel-inner::-webkit-scrollbar { width: 4px; }
+    #panel-inner::-webkit-scrollbar-track { background: transparent; }
+    #panel-inner::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Panel: default view ─────────────────── */
+    .panel-logo {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 18px;
+      color: var(--accent);
+      margin-bottom: 16px;
+      letter-spacing: 0.01em;
+    }
+    .brief-line {
+      font-size: 11px;
+      color: var(--text);
+      line-height: 1.6;
+      padding: 3px 0;
+    }
+    .brief-line.urgent { color: var(--accent); }
+    .section-label {
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 16px 0 8px;
+    }
+    .approval-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .approval-card-title {
+      font-size: 11px;
+      color: var(--text);
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .approval-card-meta {
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .approval-actions { display: flex; gap: 6px; }
+    .btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      background: transparent;
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+    .btn:hover { background: var(--surface2); color: var(--text); }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+    .btn-danger { border-color: #5A2020; color: #C45C5C; }
+    .btn-danger:hover { background: #2A1010; }
+    .btn-full { width: 100%; justify-content: center; display: flex; }
+
+    /* ── Panel: agent detail view ────────────── */
+    #panel-agent { display: none; }
+    #panel-agent.visible { display: block; }
+    .agent-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .agent-monogram {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 15px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .agent-name {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 17px;
+      color: var(--text);
+      line-height: 1.1;
+    }
+    .agent-role {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 3px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .status-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    .status-badge.running { border-color: var(--accent); color: var(--accent); }
+    .status-badge.running .dot { background: var(--accent); animation: pulse-amber 1s ease-in-out infinite; }
+    .status-badge.waiting { border-color: var(--blue); color: var(--blue); }
+    .status-badge.waiting .dot { background: var(--blue); animation: pulse-blue 1s ease-in-out infinite; }
+    @keyframes pulse-amber {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+    @keyframes pulse-blue {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+    .agent-stat-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .agent-stat { font-size: 10px; color: var(--muted); }
+    .agent-stat span { color: var(--text); }
+    .agent-last-action {
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+    .agent-actions { display: flex; flex-direction: column; gap: 5px; }
+    .action-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .action-btn:hover { background: var(--surface2); border-color: var(--muted); }
+    .action-btn.urgent { border-color: var(--accent); color: var(--accent); }
+    .action-btn.urgent:hover { background: rgba(196,120,60,0.1); }
+    .action-btn .action-icon { font-size: 10px; opacity: 0.7; }
+    .back-btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    /* ── Panel: content view ─────────────────── */
+    #panel-content { display: none; }
+    #panel-content.visible { display: block; }
+    .content-title {
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+    .content-body {
+      font-size: 11px;
+      color: var(--text);
+      line-height: 1.7;
+    }
+    .content-body p { margin-bottom: 8px; }
+    .content-body strong { color: var(--accent); }
+    .content-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    .content-item .ci-label { color: var(--muted); font-size: 10px; margin-bottom: 2px; }
+    .confirm-box {
+      background: rgba(196,120,60,0.08);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .confirm-box p { font-size: 11px; line-height: 1.6; margin-bottom: 10px; }
+    textarea.feedback-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 8px;
+      resize: vertical;
+      min-height: 60px;
+      margin-bottom: 8px;
+    }
+    textarea.feedback-input:focus { outline: none; border-color: var(--accent); }
+
+    /* ── Action ring ─────────────────────────── */
+    .ring-container {
+      position: absolute;
+      pointer-events: auto;
+      transform: translate(-50%, -50%);
+    }
+    .ring-center {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      background: var(--surface);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 14px;
+      color: var(--accent);
+      z-index: 2;
+    }
+    .ring-item {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 9px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.12s;
+      z-index: 3;
+    }
+    .ring-item:hover { background: var(--surface2); border-color: var(--muted); }
+    .ring-item.urgent { border-color: var(--accent); color: var(--accent); }
+    .ring-item.urgent:hover { background: rgba(196,120,60,0.12); }
+    .ring-bg {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      border: 1px solid rgba(42,38,32,0.6);
+      background: rgba(12,11,10,0.5);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+      pointer-events: none;
+    }
+    @keyframes ring-in {
+      from { opacity: 0; transform: scale(0.7); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .ring-container { animation: ring-in 0.15s ease-out forwards; }
+
+    /* ── Toast ───────────────────────────────── */
+    #toast-area {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 8px 16px;
+      border-radius: 4px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      pointer-events: none;
+      animation: toast-in 0.2s ease-out;
+      white-space: nowrap;
+    }
+    .toast.ok { border-color: var(--accent); }
+    .toast.err { border-color: #C45C5C; color: #C45C5C; }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Divider ─────────────────────────────── */
+    hr.panel-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 12px 0;
+    }
+
+    /* ── Pill tags ───────────────────────────── */
+    .pill {
+      display: inline-block;
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* ── Script tabs ─────────────────────────── */
+    .panel-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .panel-tab {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .panel-tab:hover { color: var(--text); border-color: var(--muted); }
+    .panel-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* ── Budget bar ──────────────────────────── */
+    .budget-track {
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 6px 0 10px;
+    }
+    .budget-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.4s ease-out;
+    }
+
+    /* ── Confirm modal ───────────────────────── */
+    /* z-index 150: above ring (10) and panel — intentional */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(12, 11, 10, 0.85);
+      z-index: 150;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.open { display: flex; }
+    #modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 300px;
+      width: 90%;
+    }
+    #modal-title {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    #modal-body {
+      font-size: 11px;
+      color: var(--text);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    #modal-body strong { color: var(--accent); }
+    #modal-body p { margin-bottom: 6px; }
+    .modal-actions { display: flex; gap: 8px; }
   </style>
 </head>
 <body>
-
-<div class="topbar">
-  <div class="topbar-logo">Culinary <span>AI</span></div>
-  <nav class="tabnav" id="tabnav">
-    <button class="tab-btn active" data-tab="overview">Overview</button>
-    <button class="tab-btn" data-tab="videos">Videos</button>
-    <button class="tab-btn" data-tab="ingredients">Ingredients</button>
-    <button class="tab-btn" data-tab="recipes">Recipes</button>
-    <button class="tab-btn" data-tab="grocery">Grocery</button>
-    <button class="tab-btn" data-tab="analytics">Analytics</button>
-    <button class="tab-btn" data-tab="agents">Agents</button>
-  </nav>
-</div>
-
-<div id="toast-container"></div>
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- TAB 1: OVERVIEW -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div class="tab-panel active" id="tab-overview">
-  <div class="grid">
-    <div class="card" id="cost-card"><div class="card-title">LLM cost this week</div><p class="loading">Loading…</p></div>
-    <div class="card" id="slo-card"><div class="card-title">SLOs</div><p class="loading">Loading…</p></div>
-    <div class="card" id="budget-card"><div class="card-title">Budget</div><p class="loading">Loading…</p></div>
-    <div class="card" id="pipeline-card"><div class="card-title">Pipeline</div><p class="loading">Loading…</p></div>
-    <div class="card" id="queue-card"><div class="card-title">In production</div><p class="loading">Loading…</p></div>
-    <div class="card" id="report-card"><div class="card-title">Weekly insights</div><p class="loading">Loading…</p></div>
-    <div class="card" id="grocery-card"><div class="card-title">Grocery list</div><p class="loading">Loading…</p></div>
+<div id="app">
+  <div id="canvas-area">
+    <canvas id="house"></canvas>
+    <div id="ring-overlay"></div>
   </div>
-  <div class="footer-meta">
-    <a id="api-docs-link" href="#" target="_blank" class="link">API docs</a>
-    &nbsp;·&nbsp;
-    <a id="calendar-link" href="#" class="link">Download calendar</a>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- TAB 2: VIDEOS (Kanban) — no toolbar button, idea is in IDEA column -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div class="tab-panel" id="tab-videos">
-  <div class="section-toolbar">
-    <div class="section-title">Videos</div>
-  </div>
-  <div class="kanban" id="kanban-board"><p class="loading">Loading…</p></div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- TAB 3: INGREDIENTS -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div class="tab-panel" id="tab-ingredients">
-  <div class="section-toolbar">
-    <div class="section-title">Ingredients</div>
-    <button class="btn btn-primary" onclick="openAddIngredient()">+ Add ingredient</button>
-  </div>
-  <div class="card">
-    <div class="table-wrap">
-      <table id="ingredients-table">
-        <thead><tr><th>Name</th><th>Category</th><th>Unit</th><th>Price/unit</th><th class="th-right">Actions</th></tr></thead>
-        <tbody><tr><td colspan="5" class="loading cell-pad">Loading…</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- TAB 4: RECIPES — card grid, no table -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div class="tab-panel" id="tab-recipes">
-  <div class="section-toolbar">
-    <div class="section-title">Recipes</div>
-    <button class="btn btn-primary" onclick="openAddRecipe()">+ New recipe</button>
-  </div>
-  <div id="recipes-grid" class="recipe-grid">
-    <p class="loading">Loading…</p>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- TAB 5: GROCERY PLANNER -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div class="tab-panel" id="tab-grocery">
-  <div class="section-toolbar">
-    <div class="section-title">Grocery planner</div>
-    <input type="date" id="grocery-week-input" class="input-date" onchange="onGroceryWeekChange()">
-  </div>
-  <div class="grid">
-    <div class="card">
-      <div class="card-title">Pick recipes for the week</div>
-      <div id="recipe-checklist" class="check-list"><p class="loading">Loading…</p></div>
-      <div id="grocery-budget-bar-wrap" class="grocery-budget-bar-wrap hidden">
-        <div class="grocery-budget-header">
-          <span>Budget usage</span>
-          <span id="grocery-budget-label">—</span>
+  <aside id="panel">
+    <button id="panel-toggle" title="Toggle panel">›</button>
+    <div id="panel-inner">
+      <!-- Default view -->
+      <div id="panel-default">
+        <div class="panel-logo">La Maison</div>
+        <div id="brief-lines"></div>
+        <hr class="panel-divider">
+        <div class="section-label">Pending approvals</div>
+        <div id="approval-cards"><span style="color:var(--muted);font-size:10px">Loading…</span></div>
+      </div>
+      <!-- Agent detail view -->
+      <div id="panel-agent">
+        <button class="back-btn" id="back-btn">← Overview</button>
+        <div class="agent-header">
+          <div class="agent-monogram" id="ag-monogram">J</div>
+          <div>
+            <div class="agent-name" id="ag-name">Julien</div>
+            <div class="agent-role" id="ag-role">Idea generator</div>
+          </div>
         </div>
-        <div class="budget-bar"><div class="budget-bar-fill" id="grocery-budget-fill" style="width:0%"></div></div>
+        <div class="status-badge" id="ag-status-badge">
+          <div class="dot"></div>
+          <span id="ag-status-text">Idle</span>
+        </div>
+        <div class="agent-last-action" id="ag-last-action">No recent activity</div>
+        <div class="agent-stat-row" id="ag-stats"></div>
+        <hr class="panel-divider">
+        <div class="agent-actions" id="ag-actions"></div>
+      </div>
+      <!-- Content view (for view actions) -->
+      <div id="panel-content">
+        <button class="back-btn" id="content-back-btn">← Back</button>
+        <div class="content-title" id="content-title"></div>
+        <div class="content-body" id="content-body"></div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title">Shopping list <span id="grocery-week-label" class="week-label"></span></div>
-      <div id="grocery-list-body"><p class="empty">Select recipes to generate list.</p></div>
-      <div class="grocery-actions">
-        <button id="grocery-download-btn" class="btn btn-ghost btn-sm" onclick="downloadGroceryList()" disabled>Download .txt</button>
-      </div>
+  </aside>
+</div>
+<!-- Approve-release confirmation modal — Colette gate, inviolable -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <div id="modal-title"></div>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button id="modal-confirm-btn" class="btn btn-primary">Publish</button>
+      <button class="btn" onclick="hideModal()">Cancel</button>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- TAB 6: ANALYTICS -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div class="tab-panel" id="tab-analytics">
-  <div class="section-toolbar">
-    <div class="section-title">Analytics</div>
-    <button class="btn btn-ghost btn-sm" onclick="loadAnalytics()">Refresh</button>
-  </div>
-  <div id="analytics-chart-wrap" class="hidden">
-    <div class="card-title">Views by video</div>
-    <canvas id="analytics-chart"></canvas>
-  </div>
-  <div class="card">
-    <div class="table-wrap">
-      <table id="analytics-table">
-        <thead><tr><th>Title</th><th>Platform</th><th>Views</th><th>Retention %</th><th>Watch time</th><th>Likes</th></tr></thead>
-        <tbody><tr><td colspan="6" class="loading cell-pad">Loading…</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-</div>
+<div id="toast-area"></div>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- TAB 7: AGENTS -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div class="tab-panel" id="tab-agents">
-  <div class="section-toolbar">
-    <div class="section-title">Agents</div>
-    <button class="btn btn-ghost btn-sm" onclick="loadAgents()">Refresh</button>
-  </div>
-  <div class="grid">
-    <div class="card" id="agents-cost-card"><div class="card-title">LLM cost this week (by agent)</div><p class="loading">Loading…</p></div>
-    <div class="card" id="agents-slo-card"><div class="card-title">SLO status</div><p class="loading">Loading…</p></div>
-    <div class="card" id="agents-latency-card"><div class="card-title">Request latency</div><p class="loading">Loading…</p></div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- DIALOGS -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-
-<!-- Video detail dialog -->
-<dialog id="video-dialog">
-  <div class="dialog-header">
-    <h3 id="vd-title">Video</h3>
-    <button class="btn-close" onclick="document.getElementById('video-dialog').close()">✕</button>
-  </div>
-  <div class="dialog-body">
-    <div class="vd-badges">
-      <span id="vd-status-badge" class="badge"></span>
-      <span id="vd-stream-badge" class="badge"></span>
-    </div>
-    <div id="vd-feedback-display" class="vd-feedback-box hidden">
-      <div class="vd-feedback-label">Feedback</div>
-      <div id="vd-feedback-text"></div>
-    </div>
-    <div id="vd-scripts-section"></div>
-    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
-    <div class="vd-section">
-      <div class="card-title">Move to stage</div>
-      <div class="vd-section-row">
-        <select id="vd-force-status" style="flex:1">
-          <option value="">— pick a stage —</option>
-          <option>IDEA</option><option>SCRIPT</option><option>SHOT</option>
-          <option>EDIT</option><option>QC</option><option>READY</option>
-          <option>SCHEDULED</option><option>PUBLISHED</option>
-        </select>
-        <button class="btn btn-ghost btn-sm" onclick="doForceStatus()">Apply</button>
-      </div>
-    </div>
-    <div>
-      <div class="card-title">Request changes</div>
-      <textarea id="vd-feedback-input" placeholder="Describe what needs to change…" style="margin-bottom:8px"></textarea>
-      <button class="btn btn-ghost btn-sm" onclick="doRequestChanges()">Send feedback</button>
-    </div>
-  </div>
-  <div class="dialog-footer">
-    <button class="btn btn-ghost" onclick="document.getElementById('video-dialog').close()">Close</button>
-    <button class="btn btn-primary" id="vd-approve-btn" onclick="doApprove()">Approve (→ SCHEDULED)</button>
-  </div>
-</dialog>
-
-<!-- Confirm delete dialog -->
-<dialog id="confirm-dialog">
-  <div class="dialog-header">
-    <h3 id="confirm-title">Confirm</h3>
-    <button class="btn-close" onclick="document.getElementById('confirm-dialog').close()">✕</button>
-  </div>
-  <div class="dialog-body">
-    <p id="confirm-msg" class="confirm-msg"></p>
-  </div>
-  <div class="dialog-footer">
-    <button class="btn btn-ghost" onclick="document.getElementById('confirm-dialog').close()">Cancel</button>
-    <button class="btn btn-danger" id="confirm-ok-btn">Delete</button>
-  </div>
-</dialog>
-
-<!-- Add/Edit ingredient dialog -->
-<dialog id="ingredient-dialog">
-  <div class="dialog-header">
-    <h3 id="ing-dialog-title">Ingredient</h3>
-    <button class="btn-close" onclick="document.getElementById('ingredient-dialog').close()">✕</button>
-  </div>
-  <div class="dialog-body">
-    <div class="form-row">
-      <div class="form-group"><label>Name *</label><input type="text" id="ing-name"></div>
-      <div class="form-group"><label>Category</label><input type="text" id="ing-category" placeholder="produce, dairy…"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>Unit</label><input type="text" id="ing-unit" placeholder="kg, L, each…"></div>
-      <div class="form-group"><label>Price per unit ($)</label><input type="number" id="ing-price" step="0.01" min="0" placeholder="0.00"></div>
-    </div>
-  </div>
-  <div class="dialog-footer">
-    <button class="btn btn-ghost" onclick="document.getElementById('ingredient-dialog').close()">Cancel</button>
-    <button class="btn btn-primary" onclick="saveIngredient()">Save</button>
-  </div>
-</dialog>
-
-<!-- Add/Edit recipe dialog — redesigned -->
-<dialog id="recipe-dialog">
-  <div class="dialog-header">
-    <h3 id="recipe-dialog-title">New recipe</h3>
-    <button class="btn-close" onclick="document.getElementById('recipe-dialog').close()">✕</button>
-  </div>
-  <div class="dialog-body">
-
-    <!-- Title with live emoji -->
-    <div class="recipe-form-field">
-      <label class="recipe-field-label" for="recipe-title">Recipe name</label>
-      <div class="recipe-title-row">
-        <span id="recipe-form-emoji" class="recipe-form-emoji-preview">🍽️</span>
-        <input type="text" id="recipe-title" class="recipe-title-input" placeholder="Name your dish…" oninput="updateRecipeEmoji()">
-      </div>
-    </div>
-
-    <!-- Stream + Time + Difficulty in one row -->
-    <div class="recipe-meta-row">
-      <div class="recipe-meta-field">
-        <label class="recipe-field-label">Type</label>
-        <div class="stream-picker">
-          <button type="button" class="stream-pill" data-val="" onclick="selectStream('')">—</button>
-          <button type="button" class="stream-pill" data-val="SHORT" onclick="selectStream('SHORT')">SHORT</button>
-          <button type="button" class="stream-pill" data-val="LONG" onclick="selectStream('LONG')">LONG</button>
-        </div>
-      </div>
-      <div class="recipe-meta-field">
-        <label class="recipe-field-label" for="recipe-time">Cook time</label>
-        <div class="time-input-wrap">
-          <input type="number" id="recipe-time" min="1" placeholder="0" style="width:100px">
-          <span class="time-unit">min</span>
-        </div>
-      </div>
-      <div class="recipe-meta-field">
-        <label class="recipe-field-label">Difficulty</label>
-        <div class="diff-picker">
-          <button type="button" class="diff-dot" onclick="selectDiff(1)" title="Easy"></button>
-          <button type="button" class="diff-dot" onclick="selectDiff(2)" title="Simple"></button>
-          <button type="button" class="diff-dot" onclick="selectDiff(3)" title="Medium"></button>
-          <button type="button" class="diff-dot" onclick="selectDiff(4)" title="Hard"></button>
-          <button type="button" class="diff-dot" onclick="selectDiff(5)" title="Expert"></button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Ingredients -->
-    <div class="recipe-form-field" style="margin-top:20px">
-      <label class="recipe-field-label">Ingredients</label>
-      <div id="recipe-ing-checklist" class="recipe-ing-list"></div>
-    </div>
-
-  </div>
-  <div class="dialog-footer">
-    <button class="btn btn-ghost" onclick="document.getElementById('recipe-dialog').close()">Cancel</button>
-    <button class="btn btn-primary" onclick="saveRecipe()">Save recipe</button>
-  </div>
-</dialog>
-
-<!-- New idea dialog -->
-<dialog id="new-idea-dialog">
-  <div class="dialog-header">
-    <h3>Save idea draft</h3>
-    <button class="btn-close" onclick="document.getElementById('new-idea-dialog').close()">✕</button>
-  </div>
-  <div class="dialog-body">
-    <div class="form-group" style="margin-bottom:12px"><label>Title *</label><input type="text" id="idea-title" placeholder="e.g. 5-min garlic butter pasta"></div>
-    <div class="form-group"><label>Stream</label>
-      <select id="idea-stream"><option value="SHORT">SHORT</option><option value="LONG">LONG</option></select>
-    </div>
-  </div>
-  <div class="dialog-footer">
-    <button class="btn btn-ghost" onclick="document.getElementById('new-idea-dialog').close()">Cancel</button>
-    <button class="btn btn-primary" onclick="saveNewIdea()">Save idea</button>
-  </div>
-</dialog>
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- SCRIPT -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
 <script>
-'use strict';
+'use strict'
 
-const API = 'http://localhost:8000';
+// ─── Palette & constants ──────────────────────────────────────────────────────
+const P = {
+  bg:       '#0C0B0A',
+  surface:  '#161513',
+  surface2: '#1E1C1A',
+  border:   '#2A2620',
+  text:     '#F0EAD8',
+  muted:    '#7A7060',
+  accent:   '#C4783C',
+  accentDim:'#8A5228',
+  blue:     '#5B8DB8',
+  skin:     '#D4A97A',
+  skin2:    '#C08858',
+  floor:    '#121110',
+  floor2:   '#141210',
+  wall:     '#1A1814',
+}
+const TILE         = 16
+const SPRITE_SCALE = 2          // display pixels per art pixel
+const CHAR_W       = 16 * SPRITE_SCALE  // 32px display
+const CHAR_H       = 24 * SPRITE_SCALE  // 48px display
+const RING_RADIUS  = 92
+const DIR          = { DOWN:0, UP:1, LEFT:2, RIGHT:3 }
 
-document.getElementById('api-docs-link').href = API + '/docs';
-document.getElementById('calendar-link').href  = API + '/calendar.ics';
+// ─── Agent config ─────────────────────────────────────────────────────────────
+const AGENTS = ['julien','marcel','camille','pierre','colette','armand','etienne','lucien']
+const AGENT_NAMES = {
+  julien:  'Julien',
+  marcel:  'Marcel',
+  camille: 'Camille',
+  pierre:  'Pierre',
+  colette: 'Colette',
+  armand:  'Armand',
+  etienne: 'Étienne',
+  lucien:  'Lucien',
+}
+const AGENT_ROLES = {
+  julien:  'Idea generator',
+  marcel:  'Script writer',
+  camille: 'Shoot director',
+  pierre:  'Edit director',
+  colette: 'Quality control',
+  armand:  'Grocery & budget',
+  etienne: 'Analytics',
+  lucien:  'Platform adaptation',
+}
+const AGENT_MONOGRAMS = {
+  julien:'J', marcel:'M', camille:'Ca', pierre:'P',
+  colette:'Co', armand:'A', etienne:'É', lucien:'L',
+}
 
-// ── State ────────────────────────────────────────────────────────────────────
-const State = (() => {
-  let d = {};
-  const L = {};
-  return {
-    get: k => d[k],
-    set: (k, v) => { d[k] = v; (L[k] || []).forEach(f => f(v)); },
-    on:  (k, f) => { (L[k] = L[k] || []).push(f); }
-  };
-})();
+// Shirt colors (distinct per agent)
+const SHIRT = {
+  julien:  '#1B3A6B', // navy
+  marcel:  '#D8D0C0', // off-white
+  camille: '#5A6B3C', // olive
+  pierre:  '#3C4048', // charcoal
+  colette: '#6B1F3C', // burgundy
+  armand:  '#2A5C3A', // green (under apron)
+  etienne: '#1E6870', // teal
+  lucien:  '#C44020', // orange-red
+}
+// Hair colors
+const HAIR = {
+  julien:  '#7A3818', // auburn
+  marcel:  '#3A2A1A', // dark brown
+  camille: '#1A1A1A', // black
+  pierre:  '#787878', // grey
+  colette: '#B8B8B8', // silver
+  armand:  '#D4A030', // blond
+  etienne: '#1A1A2C', // dark near-black
+  lucien:  '#1A1A1A', // black
+}
 
-// ── Fetch helper ─────────────────────────────────────────────────────────────
+// Agent rooms
+const AGENT_ROOM = {
+  julien:  'study',
+  marcel:  'study',
+  camille: 'living',
+  pierre:  'studio',
+  colette: 'living',
+  armand:  'kitchen',
+  etienne: 'living',
+  lucien:  'studio',
+}
+
+// ─── Canvas & rooms ───────────────────────────────────────────────────────────
+const canvas    = document.getElementById('house')
+const ctx       = canvas.getContext('2d')
+const ringOverlay = document.getElementById('ring-overlay')
+const canvasArea  = document.getElementById('canvas-area')
+let dpr = window.devicePixelRatio || 1
+let cW = 800, cH = 600
+let ROOMS = {}
+
+function computeRooms() {
+  ROOMS = {
+    kitchen: { x: 0,      y: 0,      w: cW/2, h: cH/2, label: 'Kitchen',     color: '#0F120F' },
+    study:   { x: cW/2,   y: 0,      w: cW/2, h: cH/2, label: 'Study',       color: '#0F0F12' },
+    studio:  { x: 0,      y: cH/2,   w: cW/2, h: cH/2, label: 'Edit Studio', color: '#0F0F0F' },
+    living:  { x: cW/2,   y: cH/2,   w: cW/2, h: cH/2, label: 'Living Room', color: '#120F0F' },
+  }
+}
+
+// ─── Tile map system ──────────────────────────────────────────────────────────
+const T = { EMPTY:0, FLOOR_K:1, FLOOR_S:2, FLOOR_ST:3, FLOOR_L:4, WALL:5, CORR:7, FURN:8 }
+let tileMap = []   // 2D [row][col] number array
+let collMap  = []  // 2D [row][col] boolean (true = blocked)
+
+// Room bounds (tile coords) — set by buildTileMap, read by buildWaypoints
+let _roomBounds = {}
+let WAYPOINTS   = {}
+
+function _fillRect2(c1, r1, c2, r2, type) {
+  for (let r = Math.max(0,r1); r <= Math.min(r2, tileMap.length-1); r++)
+    for (let c = Math.max(0,c1); c <= Math.min(c2, tileMap[0].length-1); c++)
+      tileMap[r][c] = type
+}
+
+function buildTileMap() {
+  const cols = Math.max(4, Math.floor(cW / TILE))
+  const rows = Math.max(4, Math.floor(cH / TILE))
+  tileMap = Array.from({length: rows}, () => new Array(cols).fill(T.WALL))
+
+  // Room interior tile bounds
+  const kc1 = 1,                          kc2 = Math.floor(cols * 0.43) - 1
+  const sc1 = Math.ceil(cols * 0.57) + 1, sc2 = cols - 2
+  const kr1 = 1,                          kr2 = Math.floor(rows * 0.46) - 1
+  const str1= Math.ceil(rows * 0.54) + 1, str2= rows - 2
+  // Corridor spans
+  const cv1 = Math.floor(cols * 0.43),    cv2 = Math.ceil(cols * 0.57)
+  const ch1 = Math.floor(rows * 0.46),    ch2 = Math.ceil(rows * 0.54)
+
+  _roomBounds = { kc1, kc2, sc1, sc2, kr1, kr2, str1, str2, cols, rows }
+
+  // Fill rooms
+  _fillRect2(kc1, kr1, kc2, kr2, T.FLOOR_K)     // Kitchen
+  _fillRect2(sc1, kr1, sc2, kr2, T.FLOOR_S)     // Study
+  _fillRect2(kc1, str1,kc2,str2, T.FLOOR_ST)    // Studio
+  _fillRect2(sc1, str1,sc2,str2, T.FLOOR_L)     // Living
+  // Corridors (walkable, neutral floor)
+  _fillRect2(cv1, 0, cv2, rows-1, T.CORR)        // vertical corridor
+  _fillRect2(0, ch1, cols-1, ch2, T.CORR)        // horizontal corridor
+
+  // Furniture (blocked) — placed in room corners/edges
+  // Kitchen stove (upper-right of kitchen)
+  _fillRect2(kc2-3, kr1, kc2, kr1+1, T.FURN)
+  // Kitchen island (center)
+  _fillRect2(kc1+3, Math.round(kr1+(kr2-kr1)*0.45), kc1+5, Math.round(kr1+(kr2-kr1)*0.65), T.FURN)
+  // Study typewriter desk (left of study)
+  _fillRect2(sc1, kr1+2, sc1+3, kr1+4, T.FURN)
+  // Study bookshelf (right wall)
+  _fillRect2(sc2-2, kr1, sc2, kr2-3, T.FURN)
+  // Studio monitor desk
+  _fillRect2(kc1, str1+2, kc1+4, str1+3, T.FURN)
+  // Living corkboard (left wall of living)
+  _fillRect2(sc1, str1+1, sc1+4, str1+3, T.FURN)
+
+  buildCollisionMap()
+  buildWaypoints()
+}
+
+function buildCollisionMap() {
+  collMap = tileMap.map(row => row.map(cell => cell === T.WALL || cell === T.FURN))
+}
+
+function tileToCanvas(tx, ty) {
+  return { x: tx * TILE + TILE / 2, y: ty * TILE + TILE / 2 }
+}
+
+function isTileWalkable(tx, ty) {
+  if (ty < 0 || tx < 0 || ty >= collMap.length || tx >= (collMap[0]?.length || 0)) return false
+  return !collMap[ty][tx]
+}
+
+function buildWaypoints() {
+  const { kc1, kc2, sc1, sc2, kr1, kr2, str1, str2 } = _roomBounds
+  function pt(c1, c2, r1, r2, fc, fr, delay) {
+    return { tx: Math.round(c1 + (c2-c1)*fc), ty: Math.round(r1 + (r2-r1)*fr), delay }
+  }
+  const K   = (fc, fr, d) => pt(kc1, kc2, kr1, kr2, fc, fr, d)
+  const Stu = (fc, fr, d) => pt(sc1, sc2, kr1, kr2, fc, fr, d)
+  const St  = (fc, fr, d) => pt(kc1, kc2, str1, str2, fc, fr, d)
+  const L   = (fc, fr, d) => pt(sc1, sc2, str1, str2, fc, fr, d)
+
+  WAYPOINTS = {
+    julien:  [Stu(0.65,0.25,2000), Stu(0.4,0.55,1500), Stu(0.8,0.65,2500), Stu(0.55,0.3,1000)],
+    marcel:  [Stu(0.15,0.35,3000), Stu(0.3,0.15,800),  Stu(0.1,0.65,1500), Stu(0.4,0.5,2000)],
+    camille: [L(0.15,0.2,1200),    L(0.4,0.5,900),      L(0.1,0.7,1500),    L(0.5,0.3,1200)],
+    pierre:  [St(0.2,0.3,2500),    St(0.1,0.65,800),    St(0.35,0.75,1200), St(0.5,0.4,1800)],
+    colette: [L(0.65,0.35,2000),   L(0.8,0.55,1000),    L(0.5,0.7,1800)],
+    armand:  [K(0.65,0.25,2000),   K(0.35,0.5,600),     K(0.75,0.65,1500),  K(0.15,0.35,1000)],
+    etienne: [L(0.45,0.65,1800),   L(0.6,0.5,1200),     L(0.75,0.78,2000),  L(0.35,0.4,1500)],
+    lucien:  [St(0.65,0.35,1500),  St(0.55,0.65,1000),  St(0.75,0.5,1200),  St(0.4,0.75,1800)],
+  }
+}
+
+function workStation(id) {
+  const R = ROOMS
+  const map = {
+    julien:  { x: R.study.x   + R.study.w   * 0.6,  y: R.study.y   + R.study.h   * 0.35 },
+    marcel:  { x: R.study.x   + R.study.w   * 0.2,  y: R.study.y   + R.study.h   * 0.45 },
+    camille: { x: R.living.x  + R.living.w  * 0.28, y: R.living.y  + R.living.h  * 0.32 },
+    pierre:  { x: R.studio.x  + R.studio.w  * 0.3,  y: R.studio.y  + R.studio.h  * 0.42 },
+    colette: { x: R.living.x  + R.living.w  * 0.65, y: R.living.y  + R.living.h  * 0.48 },
+    armand:  { x: R.kitchen.x + R.kitchen.w * 0.68, y: R.kitchen.y + R.kitchen.h * 0.38 },
+    etienne: { x: R.living.x  + R.living.w  * 0.48, y: R.living.y  + R.living.h  * 0.72 },
+    lucien:  { x: R.studio.x  + R.studio.w  * 0.68, y: R.studio.y  + R.studio.h  * 0.45 },
+  }
+  return map[id] || { x: cW/2, y: cH/2 }
+}
+
+function idlePos(id) {
+  const R = ROOMS
+  const map = {
+    julien:  { x: R.study.x   + R.study.w   * 0.72, y: R.study.y   + R.study.h   * 0.62 },
+    marcel:  { x: R.study.x   + R.study.w   * 0.38, y: R.study.y   + R.study.h   * 0.68 },
+    camille: { x: R.living.x  + R.living.w  * 0.2,  y: R.living.y  + R.living.h  * 0.55 },
+    pierre:  { x: R.studio.x  + R.studio.w  * 0.22, y: R.studio.y  + R.studio.h  * 0.65 },
+    colette: { x: R.living.x  + R.living.w  * 0.7,  y: R.living.y  + R.living.h  * 0.65 },
+    armand:  { x: R.kitchen.x + R.kitchen.w * 0.42, y: R.kitchen.y + R.kitchen.h * 0.62 },
+    etienne: { x: R.living.x  + R.living.w  * 0.55, y: R.living.y  + R.living.h  * 0.58 },
+    lucien:  { x: R.studio.x  + R.studio.w  * 0.62, y: R.studio.y  + R.studio.h  * 0.65 },
+  }
+  return map[id] || { x: cW/2, y: cH/2 }
+}
+
+function initCanvas() {
+  const rect = canvasArea.getBoundingClientRect()
+  cW = rect.width; cH = rect.height
+  canvas.width  = cW * dpr
+  canvas.height = cH * dpr
+  canvas.style.width  = cW + 'px'
+  canvas.style.height = cH + 'px'
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.imageSmoothingEnabled = false
+  computeRooms()
+  buildTileMap()
+}
+
+new ResizeObserver(() => {
+  const rect = canvasArea.getBoundingClientRect()
+  if (Math.abs(rect.width - cW) < 1 && Math.abs(rect.height - cH) < 1) return
+  cW = rect.width; cH = rect.height
+  canvas.width  = cW * dpr
+  canvas.height = cH * dpr
+  canvas.style.width  = cW + 'px'
+  canvas.style.height = cH + 'px'
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.imageSmoothingEnabled = false
+  computeRooms()
+  buildTileMap()
+  resetWaypoints()
+}).observe(canvasArea)
+
+// ─── Movement engine ──────────────────────────────────────────────────────────
+const agentPos    = {}
+const agentTarget = {}
+const roamTimers  = {}
+
+function initPositions() {
+  computeRooms()
+  for (const id of AGENTS) {
+    const p = idlePos(id)
+    agentPos[id]    = { x: p.x, y: p.y }
+    agentTarget[id] = { x: p.x, y: p.y }
+    roamTimers[id]  = 0
+  }
+}
+
+function resetTargets() {
+  for (const id of AGENTS) {
+    const st = agentStatusMap[id]
+    const running = st?.is_running
+    const tgt = running ? workStation(id) : idlePos(id)
+    agentTarget[id] = { x: tgt.x, y: tgt.y }
+  }
+}
+
+function lerp(a, b, t) { return a + (b - a) * t }
+
+// ─── Waypoint system ──────────────────────────────────────────────────────────
+const wpState = {}  // per-agent: { waypointIdx, pauseUntil, dir, walkFrame, walkTimer, x, y, bounceUntil }
+
+function initWaypoints() {
+  validateWaypoints()
+  for (const id of AGENTS) {
+    const wps = WAYPOINTS[id] || []
+    const first = wps[0] || { tx: 1, ty: 1 }
+    const pos = tileToCanvas(first.tx, first.ty)
+    wpState[id] = {
+      waypointIdx: 0,
+      pauseUntil:  0,
+      dir:         DIR.DOWN,
+      walkFrame:   0,
+      walkTimer:   0,
+      x: pos.x,
+      y: pos.y,
+      bounceUntil: 0,
+    }
+    agentPos[id] = { x: pos.x, y: pos.y }
+  }
+}
+
+function validateWaypoints() {
+  for (const id of AGENTS) {
+    for (const wp of (WAYPOINTS[id] || [])) {
+      if (!isTileWalkable(wp.tx, wp.ty)) {
+        console.warn(`[waypoints] ${id} wp (${wp.tx},${wp.ty}) is blocked`)
+      }
+    }
+  }
+}
+
+function resetWaypoints() {
+  // After resize: recompute positions from current waypointIdx
+  for (const id of AGENTS) {
+    const ws = wpState[id]
+    if (!ws) return
+    const wps = WAYPOINTS[id] || []
+    if (!wps.length) return
+    const wp = wps[ws.waypointIdx % wps.length]
+    const pos = tileToCanvas(wp.tx, wp.ty)
+    ws.x = pos.x; ws.y = pos.y
+    agentPos[id] = { x: pos.x, y: pos.y }
+  }
+}
+
+function updateWaypoints(dt) {
+  const MAX_SPEED = 1.5 * TILE / 1000  // 24 canvas-px per second
+
+  for (const id of AGENTS) {
+    const ws = wpState[id]
+    if (!ws) continue
+    const now = performance.now()
+
+    if (ws.pauseUntil > now) continue
+
+    const running = agentStatusMap[id]?.is_running
+    let target
+    if (running) {
+      target = workStation(id)
+    } else {
+      const wps = WAYPOINTS[id] || []
+      if (!wps.length) continue
+      target = tileToCanvas(wps[ws.waypointIdx % wps.length].tx, wps[ws.waypointIdx % wps.length].ty)
+    }
+
+    const dx = target.x - ws.x
+    const dy = target.y - ws.y
+    const dist = Math.hypot(dx, dy)
+
+    if (dist < 1.5) {
+      if (!running) {
+        const wps = WAYPOINTS[id] || []
+        if (wps.length) {
+          ws.pauseUntil = now + (wps[ws.waypointIdx % wps.length].delay || 1000)
+          ws.waypointIdx = (ws.waypointIdx + 1) % wps.length
+        }
+      }
+    } else {
+      const step = Math.min(dist, MAX_SPEED * dt)
+      ws.x += (dx / dist) * step
+      ws.y += (dy / dist) * step
+
+      if (Math.abs(dx) > Math.abs(dy)) ws.dir = dx > 0 ? DIR.RIGHT : DIR.LEFT
+      else                              ws.dir = dy > 0 ? DIR.DOWN  : DIR.UP
+
+      ws.walkTimer += dt
+      if (ws.walkTimer > 160) {  // ~6 fps walk cycle
+        ws.walkTimer = 0
+        ws.walkFrame = (ws.walkFrame + 1) % 4
+      }
+    }
+
+    agentPos[id] = { x: ws.x, y: ws.y }
+  }
+}
+
+// ─── House drawing (tile-map renderer) ────────────────────────────────────────
+const FLOOR_COLORS = {
+  [T.FLOOR_K]:  ['#0E120A', '#111508'],  // Kitchen: warm green-grey
+  [T.FLOOR_S]:  ['#0D0E14', '#111218'],  // Study: cool blue-grey
+  [T.FLOOR_ST]: ['#0C0D0E', '#101112'],  // Studio: near-black
+  [T.FLOOR_L]:  ['#13100D', '#17130F'],  // Living: warm brown-grey
+  [T.CORR]:     ['#0F0F0F', '#111111'],  // Corridor: neutral dark
+}
+const WALL_COLOR = '#1E1B16'
+const FURN_COLOR = '#2A2420'
+
+function drawHouse(frame) {
+  const st = agentStatusMap
+  const rows = tileMap.length
+  const cols = tileMap[0]?.length || 0
+
+  // ── Tile-map floor ─────────────────────────
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = tileMap[r][c]
+      const px2 = c * TILE, py2 = r * TILE
+      if (cell === T.WALL)  { ctx.fillStyle = WALL_COLOR; ctx.fillRect(px2, py2, TILE, TILE); continue }
+      if (cell === T.FURN)  { ctx.fillStyle = FURN_COLOR; ctx.fillRect(px2, py2, TILE, TILE); continue }
+      if (cell === T.EMPTY) { ctx.fillStyle = P.bg;       ctx.fillRect(px2, py2, TILE, TILE); continue }
+      const fc = FLOOR_COLORS[cell]
+      if (fc) {
+        ctx.fillStyle = (r + c) % 2 === 0 ? fc[0] : fc[1]
+        ctx.fillRect(px2, py2, TILE, TILE)
+        ctx.strokeStyle = 'rgba(255,255,255,0.018)'
+        ctx.lineWidth = 0.5
+        ctx.strokeRect(px2 + 0.5, py2 + 0.5, TILE - 1, TILE - 1)
+      }
+    }
+  }
+
+  // ── Room labels ────────────────────────────
+  ctx.font = '9px DM Mono, monospace'
+  ctx.fillStyle = 'rgba(240,234,216,0.16)'
+  const { kc1, sc1, str1 } = _roomBounds
+  ctx.fillText('Kitchen',     TILE * 2,          TILE * 2.5)
+  ctx.fillText('Study',       sc1 * TILE + TILE,  TILE * 2.5)
+  ctx.fillText('Edit Studio', TILE * 2,           str1 * TILE + TILE * 2)
+  ctx.fillText('Living Room', sc1 * TILE + TILE,  str1 * TILE + TILE * 2)
+
+  // ── Furniture (drawn on top of tile floor) ─
+  drawFurnitureSprites(frame, st)
+}
+
+function _snap(v) { return Math.round(v / TILE) * TILE }
+
+function drawFurnitureSprites(frame, st) {
+  const R = ROOMS
+  const kx = R.kitchen.x, ky = R.kitchen.y, kw = R.kitchen.w, kh = R.kitchen.h
+
+  // ── Kitchen ────────────────────────────────
+  // Counter along top wall
+  ctx.fillStyle = '#282C22'
+  ctx.fillRect(_snap(kx + TILE), _snap(ky + TILE), _snap(kw - TILE * 2), TILE * 2)
+  ctx.strokeStyle = '#323630'; ctx.lineWidth = 1
+  ctx.strokeRect(_snap(kx + TILE) + 0.5, _snap(ky + TILE) + 0.5, _snap(kw - TILE * 2) - 1, TILE * 2 - 1)
+
+  // Stove (right of counter)
+  const stx = _snap(kx + kw - TILE * 5), sty = _snap(ky + TILE) + 2
+  ctx.fillStyle = '#2E3028'; ctx.fillRect(stx, sty, TILE * 4, TILE + 8)
+  const armandRunning = st.armand?.is_running
+  for (let bi = 0; bi < 4; bi++) {
+    const bx2 = stx + 6 + bi * (TILE - 1), by2 = sty + 5
+    ctx.beginPath(); ctx.arc(bx2, by2, 4, 0, Math.PI * 2)
+    ctx.fillStyle = armandRunning
+      ? (Math.sin(frame * 0.3 + bi) > 0 ? '#C84020' : '#A03010') : '#2A2824'
+    ctx.fill()
+  }
+  if (armandRunning) {
+    ctx.strokeStyle = 'rgba(240,234,216,0.1)'; ctx.lineWidth = 1
+    const sOff = Math.sin(frame * 0.15) * 2
+    ctx.beginPath()
+    ctx.moveTo(stx + 8, sty - 2)
+    ctx.quadraticCurveTo(stx + 4, sty - 8 + sOff, stx + 8, sty - 12); ctx.stroke()
+  }
+
+  // Prep island (center of kitchen)
+  const isX = _snap(kx + kw * 0.25), isY = _snap(ky + kh * 0.45)
+  ctx.fillStyle = '#1E2018'; ctx.fillRect(isX, isY, TILE * 3, TILE * 2)
+  ctx.strokeStyle = '#2A2C22'; ctx.lineWidth = 1
+  ctx.strokeRect(isX + 0.5, isY + 0.5, TILE * 3 - 1, TILE * 2 - 1)
+
+  // Shelves (left wall)
+  const shX = _snap(kx + TILE * 0.5), shY = _snap(ky + kh - TILE * 4)
+  ctx.fillStyle = '#1E1C18'; ctx.fillRect(shX, shY, TILE * 2, TILE * 3)
+  for (let s = 0; s < 3; s++) {
+    ctx.fillStyle = '#2A2820'; ctx.fillRect(shX, shY + s * TILE, TILE * 2, 1)
+    const bc = ['#6B1F3C','#1B3A6B','#3C6B43']
+    for (let b = 0; b < 3; b++) {
+      ctx.fillStyle = bc[(s * 2 + b) % 3]
+      ctx.fillRect(shX + 2 + b * 9, shY + s * TILE + 1, 7, TILE - 2)
+    }
+  }
+
+  // ── Study ──────────────────────────────────
+  const sx = R.study.x, sy2 = R.study.y, sw = R.study.w
+  // Typewriter desk
+  const tdx = _snap(sx + TILE), tdy = _snap(sy2 + kh * 0.35)
+  ctx.fillStyle = '#1E1C1A'; ctx.fillRect(tdx, tdy, TILE * 4, TILE * 2)
+  // Typewriter body
+  ctx.fillStyle = '#2A2824'; ctx.fillRect(tdx + 4, tdy - TILE, TILE * 2 + 4, TILE)
+  const marcelRunning = st.marcel?.is_running
+  const paperW = marcelRunning ? Math.min(TILE * 2, Math.floor((frame % 120) / 6) * 2) : 6
+  ctx.fillStyle = '#C8C0A8'; ctx.fillRect(tdx + 6, tdy - TILE + 2, paperW, TILE - 4)
+  // Keys
+  ctx.fillStyle = '#1A1816'
+  for (let ki = 0; ki < 4; ki++) ctx.fillRect(tdx + 4 + ki * 7, tdy + TILE + 3, 5, 3)
+
+  // Bookshelf (right wall of study)
+  const bsx = _snap(sx + sw - TILE * 3), bsy = _snap(sy2 + TILE)
+  ctx.fillStyle = '#1E1C18'; ctx.fillRect(bsx, bsy, TILE * 2, TILE * 5)
+  const bookC = ['#6B1F3C','#1B3A6B','#3C6B43','#8B4513','#4A3070']
+  for (let shelf = 0; shelf < 4; shelf++) {
+    ctx.fillStyle = '#2A2820'; ctx.fillRect(bsx, bsy + shelf * (TILE + 2), TILE * 2, 1)
+    for (let b = 0; b < 5; b++) {
+      ctx.fillStyle = bookC[(shelf * 3 + b) % bookC.length]
+      ctx.fillRect(bsx + 2 + b * 5, bsy + shelf * (TILE + 2) + 1, 4, TILE - 1)
+    }
+  }
+
+  // Armchair (study, right area)
+  const acx = _snap(sx + sw * 0.58), acy = _snap(sy2 + kh * 0.6)
+  ctx.fillStyle = '#2C2018'; ctx.fillRect(acx, acy, TILE * 3, TILE * 2)
+  ctx.fillStyle = '#342818'
+  ctx.fillRect(acx - TILE/2, acy + 4, TILE/2, TILE * 2 - 4)   // left arm
+  ctx.fillRect(acx + TILE*3, acy + 4, TILE/2, TILE * 2 - 4)    // right arm
+  ctx.fillRect(acx, acy - TILE/2, TILE*3, TILE/2)               // back rest
+
+  // ── Edit Studio ────────────────────────────
+  const ex = R.studio.x, ey = R.studio.y
+  // Monitor + desk
+  const mdx = _snap(ex + TILE), mdy = _snap(ey + kh * 0.35)
+  ctx.fillStyle = '#1E1C1A'; ctx.fillRect(mdx, mdy + TILE * 2, TILE * 5, TILE)
+  // Monitor screen
+  ctx.fillStyle = '#0C0C0E'; ctx.fillRect(mdx + 2, mdy, TILE * 3 - 4, TILE * 2)
+  ctx.strokeStyle = '#2A2824'; ctx.lineWidth = 1
+  ctx.strokeRect(mdx + 2.5, mdy + 0.5, TILE * 3 - 5, TILE * 2 - 1)
+  const pierreRunning = st.pierre?.is_running
+  if (pierreRunning) {
+    const gA = 0.22 + Math.sin(frame * 0.05) * 0.1
+    ctx.fillStyle = `rgba(91,141,184,${gA})`
+    ctx.fillRect(mdx + 4, mdy + 2, TILE * 3 - 8, TILE * 2 - 4)
+    ctx.fillStyle = 'rgba(91,141,184,0.55)'
+    for (let li = 0; li < 4; li++)
+      ctx.fillRect(mdx + 6, mdy + 4 + li * 5, 10 + (li * 7 % 12), 1)
+  }
+  // Monitor stand
+  ctx.fillStyle = '#1E1C1A'; ctx.fillRect(mdx + TILE + 2, mdy + TILE * 2, TILE, 5)
+
+  // Equipment rack
+  const rax = _snap(ex + TILE * 0.5), ray = _snap(ey + kh - TILE * 4)
+  ctx.fillStyle = '#181618'; ctx.fillRect(rax, ray, TILE * 2, TILE * 3)
+  for (let r2 = 0; r2 < 3; r2++) {
+    ctx.fillStyle = '#201E20'; ctx.fillRect(rax + 2, ray + 2 + r2 * (TILE + 2), TILE * 2 - 4, TILE)
+    ctx.fillStyle = '#2A5C3A'; ctx.fillRect(rax + TILE * 2 - 5, ray + 5 + r2 * (TILE + 2), 4, 4)
+  }
+
+  // Lucien's phone station desk
+  const ldx = _snap(ex + kw * 0.55), ldy = _snap(ey + kh * 0.35)
+  ctx.fillStyle = '#1E1C1A'; ctx.fillRect(ldx, ldy + TILE * 2, TILE * 3, TILE)
+
+  // ── Living Room ────────────────────────────
+  const lx = R.living.x, ly = R.living.y, lw = R.living.w, lh = R.living.h
+  // Corkboard (left wall of living)
+  const cbx = _snap(lx + TILE), cby = _snap(ly + TILE)
+  ctx.fillStyle = '#2A200E'
+  ctx.strokeStyle = '#3A2C14'; ctx.lineWidth = 1
+  ctx.fillRect(cbx, cby, TILE * 4, TILE * 3)
+  ctx.strokeRect(cbx + 0.5, cby + 0.5, TILE * 4 - 1, TILE * 3 - 1)
+  const camRunning = st.camille?.is_running
+  const noteC = ['#C4783C','#D0C8B0','#5A6B3C','#6B1F3C']
+  for (let ni = 0; ni < 6; ni++) {
+    const nx2 = cbx + 4 + (ni % 3) * (TILE + 2)
+    const ny2 = cby + 4 + Math.floor(ni / 3) * (TILE + 4)
+    const nOff = camRunning ? Math.sin(frame * 0.12 + ni) * 1 : 0
+    ctx.fillStyle = noteC[ni % 4]; ctx.fillRect(nx2 + nOff, ny2, TILE - 2, TILE - 2)
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'
+    for (let nl = 0; nl < 3; nl++)
+      ctx.fillRect(nx2 + 2 + nOff, ny2 + 2 + nl * 4, TILE - 6, 1)
+  }
+
+  // Colette QC desk
+  const qdx = _snap(lx + lw * 0.55), qdy = _snap(ly + lh * 0.38)
+  ctx.fillStyle = '#1E1C1A'; ctx.fillRect(qdx, qdy + TILE + 4, TILE * 3, TILE)
+  const colRunning = st.colette?.is_running
+  const cpOff = colRunning ? Math.sin(frame * 0.1) * 2 : 0
+  ctx.fillStyle = '#C8B878'; ctx.fillRect(qdx + 4 + cpOff, qdy, TILE, TILE + 8)
+  ctx.fillStyle = 'rgba(0,0,0,0.4)'
+  for (let cl = 0; cl < 4; cl++)
+    ctx.fillRect(qdx + 6 + cpOff, qdy + 3 + cl * 4, TILE - 4, 1)
+
+  // Étienne analytics desk
+  const adx = _snap(lx + lw * 0.45), ady = _snap(ly + lh * 0.72)
+  ctx.fillStyle = '#1E1C1A'; ctx.fillRect(adx, ady + TILE, TILE * 4, TILE)
+  ctx.fillStyle = '#C8C0A8'; ctx.fillRect(adx + 2, ady, TILE * 2, TILE)
+  const etRunning = st.etienne?.is_running
+  const barH2 = [8, 5, 11, 6, 9]
+  ctx.fillStyle = P.accent
+  for (let bi = 0; bi < 5; bi++) {
+    const bh2 = barH2[bi] + (etRunning ? Math.round(Math.sin(frame * 0.08 + bi) * 3) : 0)
+    ctx.fillRect(adx + 4 + bi * 5, ady + TILE - bh2, 4, bh2)
+  }
+}
+
+// ─── Sprite drawing ───────────────────────────────────────────────────────────
+function px(v) { return Math.round(v) }
+
+function drawStatusDot(cx, headTop, status) {
+  if (status === 'idle') return
+  ctx.beginPath()
+  ctx.arc(px(cx), px(headTop) - 6, 4, 0, Math.PI * 2)
+  ctx.fillStyle = status === 'running' ? P.accent : P.blue
+  ctx.fill()
+}
+
+// Draws a Stardew Valley–style 16×24 art-pixel character (scaled ×2 = 32×48px).
+// sx, sy = top-left of the bounding box on the canvas.
+function drawSprite(id, dir, walkFrame, sx, sy) {
+  const sc    = SPRITE_SCALE   // 2
+  const shirt = SHIRT[id]
+  const hair  = HAIR[id]
+  const emo   = emotionState[id]?.current
+
+  // helper: fill rect in art-grid coords relative to sprite origin
+  const r = (ax, ay, aw, ah, color) => {
+    ctx.fillStyle = color
+    ctx.fillRect(sx + ax * sc, sy + ay * sc, aw * sc, ah * sc)
+  }
+
+  const PANT = '#1A1816'
+  const SHOE = '#0C0B0A'
+
+  // ── Legs + walk cycle ──────────────────────────────────────
+  // walkFrame 0..3: 0=stand, 1=left-fwd, 2=stand, 3=right-fwd
+  const lOff = walkFrame === 1 ? -1 : walkFrame === 3 ?  1 : 0
+  const rOff = walkFrame === 1 ?  1 : walkFrame === 3 ? -1 : 0
+  if (dir === DIR.LEFT || dir === DIR.RIGHT) {
+    r(4, 18 + lOff, 4, 4, PANT); r(7, 18 + rOff, 4, 4, PANT)
+    r(3, 22 + lOff, 5, 2, SHOE); r(6, 22 + rOff, 5, 2, SHOE)
+  } else {
+    r(3, 18 + lOff, 4, 4, PANT); r(9, 18 + rOff, 4, 4, PANT)
+    r(2, 22 + lOff, 5, 2, SHOE); r(8, 22 + rOff, 5, 2, SHOE)
+  }
+
+  // ── Torso + arms + belt ────────────────────────────────────
+  r(2, 9, 12, 8, shirt)
+  r(0, 9,  2, 6, shirt)   // left arm
+  r(14, 9, 2, 6, shirt)   // right arm
+  r(2, 17, 12, 1, PANT)   // belt
+  if (id === 'armand') r(4, 9, 8, 8, '#D0C8B0')  // apron
+
+  // ── Neck + head ────────────────────────────────────────────
+  r(6, 8, 4, 1, P.skin)
+  r(3, 3, 10, 5, P.skin)
+
+  // ── Hair ───────────────────────────────────────────────────
+  r(3, 0, 10, 4, hair)
+  if (id === 'colette') r(5, -2,  6, 3, hair)
+  if (id === 'etienne') r(4, -3,  8, 4, hair)
+  if (id === 'armand')  { r(1, 0, 14, 3, hair); r(2, -1, 12, 2, hair) }
+  if (id === 'camille') { r(1, 0,  3, 4, hair); r(1, 4,   2, 2, hair) }
+  if (dir !== DIR.UP)   { r(3, 2,  2, 2, hair); r(11, 2,  2, 2, hair) }  // fringe
+  if (dir === DIR.UP)     r(3, 3, 10, 6, hair)                            // back of head
+
+  // ── Face (skipped for UP direction) ───────────────────────
+  if (dir !== DIR.UP) {
+    // Eyes
+    ctx.fillStyle = '#0C0B0A'
+    if      (dir === DIR.DOWN)  { ctx.fillRect(sx+5*sc, sy+5*sc, sc, sc); ctx.fillRect(sx+9*sc, sy+5*sc, sc, sc) }
+    else if (dir === DIR.LEFT)    ctx.fillRect(sx+4*sc, sy+5*sc, sc, sc)
+    else                          ctx.fillRect(sx+10*sc,sy+5*sc, sc, sc)
+
+    // Pierre's glasses
+    if (id === 'pierre') {
+      ctx.strokeStyle = P.muted; ctx.lineWidth = 0.5
+      if (dir === DIR.DOWN) {
+        ctx.strokeRect(sx+4*sc, sy+4.5*sc, 2.5*sc, 2*sc)
+        ctx.strokeRect(sx+8.5*sc, sy+4.5*sc, 2.5*sc, 2*sc)
+        ctx.beginPath(); ctx.moveTo(sx+6.5*sc, sy+5.5*sc); ctx.lineTo(sx+8.5*sc, sy+5.5*sc); ctx.stroke()
+      } else {
+        const gx = dir === DIR.LEFT ? 3 : 9
+        ctx.strokeRect(sx+gx*sc, sy+4.5*sc, 2.5*sc, 2*sc)
+      }
+    }
+
+    // Mouth — emotion driven
+    const mY = 7
+    ctx.fillStyle = '#0C0B0A'
+    if (emo === 'smile' || emo === 'laugh') {
+      if (dir === DIR.DOWN) {
+        ctx.fillRect(sx+5*sc, sy+mY*sc, 6*sc, sc)
+        ctx.fillRect(sx+4*sc, sy+(mY-0.5)*sc, sc, sc)
+        ctx.fillRect(sx+11*sc,sy+(mY-0.5)*sc, sc, sc)
+      } else {
+        const mx = dir === DIR.LEFT ? 4 : 9
+        ctx.fillRect(sx+mx*sc, sy+mY*sc, 3*sc, sc)
+      }
+    } else if (emo === 'worry') {
+      if (dir === DIR.DOWN) {
+        ctx.fillRect(sx+5*sc, sy+(mY+0.5)*sc, 6*sc, sc)
+        ctx.fillRect(sx+5*sc, sy+mY*sc, sc, sc)
+        ctx.fillRect(sx+10*sc,sy+mY*sc, sc, sc)
+      } else {
+        const mx = dir === DIR.LEFT ? 4 : 9
+        ctx.fillRect(sx+mx*sc, sy+(mY+0.5)*sc, 2*sc, sc)
+      }
+    } else if (emo === 'surprise') {
+      ctx.beginPath()
+      ctx.arc(sx+8*sc, sy+(mY+0.5)*sc, sc, 0, Math.PI*2)
+      ctx.fill()
+    } else {
+      // neutral
+      const mx = dir === DIR.DOWN ? 6 : dir === DIR.LEFT ? 4 : 9
+      const mw = dir === DIR.DOWN ? 4 : 2
+      ctx.fillRect(sx+mx*sc, sy+mY*sc, mw*sc, 1)
+    }
+
+    // Raised eyebrows on surprise
+    if (emo === 'surprise' && dir === DIR.DOWN) {
+      ctx.fillStyle = hair
+      ctx.fillRect(sx+4*sc, sy+4*sc, 2*sc, sc)
+      ctx.fillRect(sx+9*sc, sy+4*sc, 2*sc, sc)
+    }
+  }
+
+  // ── Accessories ────────────────────────────────────────────
+  if (id === 'julien') {
+    ctx.fillStyle = '#8B4513'
+    ctx.fillRect(sx - sc, sy+10*sc, 2*sc, 3*sc)   // book
+  }
+  if (id === 'colette') {
+    ctx.fillStyle = '#C8B878'
+    ctx.fillRect(sx+15*sc, sy+9*sc, 2*sc, 3*sc)   // clipboard
+  }
+  if (id === 'etienne') {
+    ctx.fillStyle = '#D4A030'
+    ctx.fillRect(sx+15*sc, sy+10*sc, 1, 3*sc)     // pencil
+  }
+  if (id === 'lucien') {
+    ctx.fillStyle = '#1A1A1A'
+    ctx.fillRect(sx+15*sc, sy+9*sc, 2*sc, 3*sc)   // phone body
+    ctx.fillStyle = P.blue
+    ctx.fillRect(sx+15*sc+1, sy+9*sc+1, 2*sc-2, 3*sc-2) // screen glow
+  }
+}
+
+// ─── Emotion system ───────────────────────────────────────────────────────────
+const emotionState = {}
+const EMOTION_BUBBLES = { smile:'♥', laugh:'♪', surprise:'!', worry:'?', focused:'★' }
+
+function initEmotionState() {
+  for (const id of AGENTS)
+    emotionState[id] = { current: null, until: 0, last: null, cooldown: 0 }
+}
+
+function triggerEmotion(agentId, emotion, dur = 3000) {
+  const st = emotionState[agentId]; if (!st) return
+  const now = performance.now()
+  if (st.current === emotion) return
+  if (st.last === emotion && now < st.cooldown) return
+  st.current = emotion; st.until = now + dur
+  st.last = emotion; st.cooldown = now + dur + 2000
+}
+
+function tickEmotions() {
+  const now = performance.now()
+  for (const id of AGENTS) {
+    const st = emotionState[id]
+    if (st?.current && now > st.until) st.current = null
+  }
+}
+
+let _lastProxCheck = 0
+function checkSocialProximity() {
+  const now = performance.now()
+  if (now - _lastProxCheck < 2000) return
+  _lastProxCheck = now
+  const DIST = TILE * 2.5
+  for (let i = 0; i < AGENTS.length; i++) {
+    for (let j = i + 1; j < AGENTS.length; j++) {
+      const a = agentPos[AGENTS[i]], b = agentPos[AGENTS[j]]
+      if (!a || !b) continue
+      if (Math.hypot(a.x - b.x, a.y - b.y) < DIST) {
+        if (!agentStatusMap[AGENTS[i]]?.is_running && !agentStatusMap[AGENTS[j]]?.is_running) {
+          triggerEmotion(AGENTS[i], 'smile', 2000)
+          setTimeout(() => triggerEmotion(AGENTS[j], 'smile', 2000), 400)
+        }
+      }
+    }
+  }
+}
+
+function drawEmotionBubble(id, cx, cy) {
+  const emo = emotionState[id]?.current
+  if (!emo) return
+  const ch = EMOTION_BUBBLES[emo]
+  const bx = Math.round(cx - 10), by = Math.round(cy - CHAR_H - 18)
+  ctx.fillStyle = '#F0EAD8'
+  ctx.beginPath(); ctx.roundRect(bx, by, 20, 18, 4); ctx.fill()
+  ctx.beginPath()
+  ctx.moveTo(bx+6, by+17); ctx.lineTo(bx+10, by+24); ctx.lineTo(bx+14, by+17)
+  ctx.fill()
+  ctx.fillStyle = '#0C0B0A'
+  ctx.font = '11px serif'
+  ctx.textAlign = 'center'
+  ctx.fillText(ch, bx+10, by+13)
+  ctx.textAlign = 'left'
+}
+
+window.triggerTaskSuccess = id => {
+  triggerEmotion(id, 'laugh', 2500)
+  if (wpState[id]) wpState[id].bounceUntil = performance.now() + 600
+}
+window.triggerTaskFailure = id => triggerEmotion(id, 'worry', 3000)
+window.triggerSurprise    = id => {
+  triggerEmotion(id, 'surprise', 2000)
+  if (wpState[id]) wpState[id].bounceUntil = performance.now() + 300
+}
+
+// ─── Animation loop ───────────────────────────────────────────────────────────
+let frame      = 0
+let rafId      = null
+let _lastFrame = 0
+
+function animate(timestamp) {
+  const dt = _lastFrame ? Math.min(timestamp - _lastFrame, 100) : 16
+  _lastFrame = timestamp
+  frame++
+
+  ctx.clearRect(0, 0, cW, cH)
+  drawHouse(frame)
+
+  updateWaypoints(dt)
+  tickEmotions()
+  checkSocialProximity()
+
+  for (const id of AGENTS) {
+    const ws = wpState[id]
+    if (!ws) continue
+    const st     = agentStatusMap[id]
+    const status = st?.is_running ? 'running' : st?.is_waiting ? 'waiting' : 'idle'
+    const now    = performance.now()
+    const bounce = ws.bounceUntil && now < ws.bounceUntil
+      ? -Math.abs(Math.sin((now % 200) / 200 * Math.PI)) * 6
+      : 0
+    const drawX = Math.round(ws.x - CHAR_W / 2)
+    const drawY = Math.round(ws.y - CHAR_H + bounce)
+
+    drawSprite(id, ws.dir, ws.walkFrame, drawX, drawY)
+    drawStatusDot(ws.x, ws.y - CHAR_H, status)
+    drawEmotionBubble(id, ws.x, ws.y)
+
+    ctx.font = '8px DM Mono, monospace'
+    ctx.fillStyle = status === 'running' ? P.accent
+                  : status === 'waiting' ? P.blue
+                  : 'rgba(240,234,216,0.2)'
+    ctx.textAlign = 'center'
+    ctx.fillText(AGENT_NAMES[id], Math.round(ws.x), Math.round(ws.y + 10))
+    ctx.textAlign = 'left'
+  }
+
+  rafId = requestAnimationFrame(animate)
+}
+
+// ─── Agent status state ───────────────────────────────────────────────────────
+let agentStatusMap = {}
+let pendingVideos  = []
+
+function buildStatusMap(agents, qcVideos) {
+  const map = {}
+  for (const a of agents) {
+    map[a.agent] = {
+      is_running:      a.is_running,
+      is_waiting:      false,
+      call_count_7d:   a.call_count_7d,
+      success_rate_7d: a.success_rate_7d,
+      cost_usd_today:  a.cost_usd_today,
+      last_call_at:    a.last_call_at,
+    }
+  }
+  // Colette is waiting when videos are in QC
+  if (qcVideos.length > 0 && map.colette) map.colette.is_waiting = true
+  // Marcel is waiting when there's SCRIPT video with feedback (request-changes)
+  return map
+}
+
+// ─── Canvas interaction ───────────────────────────────────────────────────────
+let activeRingAgent = null
+let _ringDismissHandler = null
+
+function agentAtPoint(mx, my) {
+  let best = null, bestDist = 35
+  for (const id of AGENTS) {
+    const p = agentPos[id]
+    const d = Math.hypot(mx - p.x, my - (p.y - CHAR_H / 2))
+    if (d < bestDist) { bestDist = d; best = id }
+  }
+  return best
+}
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect()
+  const mx = (e.clientX - rect.left) * (cW / rect.width)
+  const my = (e.clientY - rect.top)  * (cH / rect.height)
+  const hit = agentAtPoint(mx, my)
+  if (hit) {
+    expandPanel()
+    showRing(hit, mx, my)
+  } else {
+    hideRing()
+  }
+})
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') hideRing()
+})
+
+// ─── Action ring ──────────────────────────────────────────────────────────────
+const AGENT_ACTIONS = {
+  julien:  [
+    { key: 'view_ideas',      label: 'View idea cards',       icon: '◆' },
+    { key: 'generate_idea',   label: 'Generate new idea',     icon: '✦' },
+    { key: 'hook_strategy',   label: 'Hook strategy',         icon: '◈' },
+    { key: 'system_prompt',   label: 'System prompt',         icon: '◉' },
+  ],
+  marcel:  [
+    { key: 'approve_script',  label: 'Approve script',        icon: '✓', urgent: () => pendingVideos.length > 0 },
+    { key: 'view_draft',      label: 'View current draft',    icon: '◆' },
+    { key: 'request_rewrite', label: 'Request rewrite',       icon: '↺' },
+    { key: 'system_prompt',   label: 'System prompt',         icon: '◉' },
+  ],
+  camille: [
+    { key: 'view_shoot_card', label: 'View shoot card',       icon: '◆' },
+    { key: 'regen_thursday',  label: 'Regenerate Thursday',   icon: '↺' },
+    { key: 'system_prompt',   label: 'System prompt',         icon: '◉' },
+  ],
+  pierre:  [
+    { key: 'view_edit_dir',   label: 'View edit directive',   icon: '◆' },
+    { key: 'system_prompt',   label: 'System prompt',         icon: '◉' },
+  ],
+  colette: [
+    { key: 'approve_release', label: 'Approve release',       icon: '✓', urgent: () => pendingVideos.length > 0 },
+    { key: 'view_qc_report',  label: 'View QC report',        icon: '◆' },
+    { key: 'view_packet',     label: 'View release packet',   icon: '◈' },
+    { key: 'system_prompt',   label: 'System prompt',         icon: '◉' },
+  ],
+  lucien:  [
+    { key: 'view_platform',   label: 'View platform packet',  icon: '◆' },
+    { key: 'system_prompt',   label: 'System prompt',         icon: '◉' },
+  ],
+  armand:  [
+    { key: 'view_grocery',    label: 'View grocery list',     icon: '◆' },
+    { key: 'simulate_week',   label: 'Simulate this week',    icon: '↺' },
+    { key: 'log_purchase',    label: 'Log a purchase',        icon: '+' },
+    { key: 'system_prompt',   label: 'System prompt',         icon: '◉' },
+  ],
+  etienne: [
+    { key: 'view_memo',       label: 'View weekly memo',      icon: '◆' },
+    { key: 'view_hooks',      label: 'Hook rankings',         icon: '◈' },
+    { key: 'system_prompt',   label: 'System prompt',         icon: '◉' },
+  ],
+}
+
+function showRing(agentId, canvasX, canvasY) {
+  hideRing()
+  activeRingAgent = agentId
+  openAgentDetail(agentId)
+
+  const rect = canvas.getBoundingClientRect()
+  const domX = rect.left + canvasX * (rect.width  / cW)
+  const domY = rect.top  + canvasY * (rect.height / cH) - (CHAR_H * rect.height / cH) * 0.4
+
+  const actions = AGENT_ACTIONS[agentId] || []
+  const n = actions.length
+  const container = document.createElement('div')
+  container.className = 'ring-container'
+  container.style.left = (domX - rect.left) + 'px'
+  container.style.top  = (domY - rect.top)  + 'px'
+
+  const bg = document.createElement('div')
+  bg.className = 'ring-bg'
+  container.appendChild(bg)
+
+  const center = document.createElement('div')
+  center.className = 'ring-center'
+  center.textContent = AGENT_MONOGRAMS[agentId]
+  container.appendChild(center)
+
+  actions.forEach((action, i) => {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2
+    const r = RING_RADIUS
+    const itemX = Math.cos(angle) * r
+    const itemY = Math.sin(angle) * r
+
+    const item = document.createElement('div')
+    item.className = 'ring-item' + (action.urgent?.() ? ' urgent' : '')
+    item.style.pointerEvents = 'auto'
+    item.textContent = action.label
+    item.style.left = (itemX + '').replace(/(\.\d{2}).*/, '$1') + 'px'
+    item.style.top  = (itemY + '').replace(/(\.\d{2}).*/, '$1') + 'px'
+    item.addEventListener('click', e => {
+      e.stopPropagation()
+      e.preventDefault()
+      hideRing()
+      dispatch(agentId, action.key)
+    })
+    container.appendChild(item)
+  })
+
+  ringOverlay.style.pointerEvents = 'auto'
+  ringOverlay.appendChild(container)
+
+  // Dismiss ring when clicking outside it — use pointerdown, skip current event frame
+  requestAnimationFrame(() => {
+    _ringDismissHandler = (e) => {
+      if (!e.target.closest('.ring-container')) hideRing()
+    }
+    document.addEventListener('pointerdown', _ringDismissHandler)
+  })
+}
+
+function hideRing() {
+  if (_ringDismissHandler) {
+    document.removeEventListener('pointerdown', _ringDismissHandler)
+    _ringDismissHandler = null
+  }
+  ringOverlay.innerHTML = ''
+  ringOverlay.style.pointerEvents = 'none'
+  activeRingAgent = null
+}
+
+// ─── Side panel ───────────────────────────────────────────────────────────────
+const panel       = document.getElementById('panel')
+const panelToggle = document.getElementById('panel-toggle')
+const panelDefault= document.getElementById('panel-default')
+const panelAgent  = document.getElementById('panel-agent')
+const panelContent= document.getElementById('panel-content')
+let panelAgentId  = null
+let contentBackTarget = 'default'  // 'default' or 'agent'
+
+panelToggle.addEventListener('click', togglePanel)
+document.getElementById('back-btn').addEventListener('click', () => {
+  showView('default')
+  panelAgentId = null
+})
+document.getElementById('content-back-btn').addEventListener('click', () => {
+  showView(contentBackTarget)
+})
+
+function togglePanel() {
+  if (panel.classList.contains('collapsed')) {
+    expandPanel()
+  } else {
+    panel.classList.add('collapsed')
+    panelToggle.textContent = '‹'
+  }
+}
+
+function expandPanel() {
+  panel.classList.remove('collapsed')
+  panelToggle.textContent = '›'
+}
+
+function showView(which) {
+  panelDefault.style.display  = which === 'default'  ? 'block' : 'none'
+  panelAgent.style.display    = which === 'agent'    ? 'block' : 'none'
+  panelContent.style.display  = which === 'content'  ? 'block' : 'none'
+}
+
+function openAgentDetail(agentId) {
+  panelAgentId = agentId
+  showView('agent')
+
+  const st = agentStatusMap[agentId] || {}
+  const status = st.is_running ? 'running' : st.is_waiting ? 'waiting' : 'idle'
+
+  document.getElementById('ag-monogram').textContent = AGENT_MONOGRAMS[agentId]
+  document.getElementById('ag-name').textContent     = AGENT_NAMES[agentId]
+  document.getElementById('ag-role').textContent     = AGENT_ROLES[agentId]
+
+  const badge = document.getElementById('ag-status-badge')
+  badge.className = 'status-badge ' + status
+  document.getElementById('ag-status-text').textContent =
+    status === 'running' ? 'Working' : status === 'waiting' ? 'Waiting for review' : 'Idle'
+
+  const lastAction = st.last_call_at
+    ? `Last active ${timeSince(st.last_call_at)}`
+    : 'No recent activity'
+  document.getElementById('ag-last-action').textContent = lastAction
+
+  document.getElementById('ag-stats').innerHTML = `
+    <div class="agent-stat">Calls 7d <span>${st.call_count_7d || 0}</span></div>
+    <div class="agent-stat">Cost today <span>$${(st.cost_usd_today || 0).toFixed(3)}</span></div>
+    <div class="agent-stat">Success <span>${(st.success_rate_7d || 100).toFixed(0)}%</span></div>
+  `
+
+  const actionsEl = document.getElementById('ag-actions')
+  const actions = AGENT_ACTIONS[agentId] || []
+  actionsEl.innerHTML = ''
+  actions.forEach(action => {
+    const btn = document.createElement('button')
+    btn.className = 'action-btn' + (action.urgent?.() ? ' urgent' : '')
+    btn.innerHTML = `<span class="action-icon">${action.icon}</span>${action.label}`
+    btn.addEventListener('click', () => dispatch(agentId, action.key))
+    actionsEl.appendChild(btn)
+  })
+}
+
+function showContentView(title, html, backTarget = 'agent') {
+  contentBackTarget = backTarget
+  document.getElementById('content-title').textContent = title
+  document.getElementById('content-body').innerHTML = html
+  showView('content')
+}
+
+// ─── Panel render helpers ─────────────────────────────────────────────────────
+
+let _currentIdea = null
+
+function _panelLoad(title) {
+  showContentView(title, `<p style="color:var(--muted);font-style:italic">Loading…</p>`)
+}
+function _panelEmpty(title, msg) {
+  showContentView(title, `<p style="color:var(--muted)">${esc(msg)}</p>`)
+}
+function _panelErr(title, msg) {
+  showContentView(title, `<p style="color:#C45C5C">${esc(msg)}</p>`)
+}
+
+function renderIdeaCard(idea) {
+  _currentIdea = idea
+  const tags = (idea.tags || []).map(t => `<span class="pill">${esc(t)}</span>`).join(' ')
+  return `
+    <div class="content-item">
+      <div class="ci-label">Title</div>
+      <div style="font-size:12px;color:var(--text);margin-top:2px;line-height:1.4">${esc(idea.title || '—')}</div>
+    </div>
+    <div class="content-item">
+      <div class="ci-label">Pillar</div>
+      ${esc(idea.pillar || '—')}
+    </div>
+    <div class="content-item">
+      <div class="ci-label">Hook</div>
+      <div style="font-style:italic;color:var(--accent);line-height:1.5">${esc(idea.hook || idea.description || '—')}</div>
+    </div>
+    ${idea.stream ? `<div class="content-item"><div class="ci-label">Stream</div>${esc(idea.stream)}</div>` : ''}
+    ${tags ? `<div class="content-item"><div class="ci-label">Tags</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${tags}</div></div>` : ''}
+    <div style="margin-top:12px;display:flex;gap:6px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveIdeaDraft()">Save as draft</button>
+      <button class="btn" onclick="dispatch('julien','generate_idea')">New idea</button>
+    </div>
+  `
+}
+
+function renderScriptPanel(video, showApprove) {
+  const scripts = video.scripts || []
+  const tutorial = scripts.find(s => s.variant === 'TUTORIAL')
+  const personal = scripts.find(s => s.variant === 'PERSONAL')
+  let html = `<div class="ci-label" style="margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(video.title)}</div>`
+  if (tutorial || personal) {
+    html += `<div class="panel-tabs">`
+    if (tutorial) html += `<button class="panel-tab active" data-variant="TUTORIAL" onclick="switchScriptTab('TUTORIAL')">Tutorial</button>`
+    if (personal) html += `<button class="panel-tab" data-variant="PERSONAL" onclick="switchScriptTab('PERSONAL')">Personal</button>`
+    html += `</div>`
+  }
+  if (tutorial) {
+    html += `<div id="tab-TUTORIAL" class="tab-content">
+      <div style="font-size:10px;color:var(--muted);line-height:1.7;white-space:pre-wrap;max-height:180px;overflow-y:auto;padding-bottom:6px">${esc(tutorial.body || '')}</div>
+      ${_renderVerification(tutorial.verification)}
+    </div>`
+  }
+  if (personal) {
+    html += `<div id="tab-PERSONAL" class="tab-content" style="display:none">
+      <div style="font-size:10px;color:var(--muted);line-height:1.7;white-space:pre-wrap;max-height:180px;overflow-y:auto;padding-bottom:6px">${esc(personal.body || '')}</div>
+      ${_renderVerification(personal.verification)}
+    </div>`
+  }
+  if (!tutorial && !personal) {
+    html += `<p style="color:var(--muted)">No scripts found.</p>`
+  }
+  if (showApprove) {
+    html += `<div class="confirm-box" style="margin-top:12px">
+      <p>Approve scripts for <strong>${esc(video.title)}</strong>?</p>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-primary" onclick="runQCForVideo('${video.id}')">Approve &amp; run QC</button>
+        <button class="btn btn-danger" onclick="showRewriteFormFor('${video.id}')">Request rewrite</button>
+      </div>
+    </div>`
+  }
+  return html
+}
+
+function _renderVerification(v) {
+  if (!v || typeof v !== 'object' || !Object.keys(v).length) return ''
+  const rows = Object.entries(v).map(([k, val]) =>
+    `<div style="display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid var(--border)">
+      <span style="color:var(--muted)">${esc(k.replace(/_/g,' '))}</span>
+      <span>${esc(String(val))}</span>
+    </div>`
+  ).join('')
+  return `<details style="margin-top:6px">
+    <summary style="font-size:10px;color:var(--muted);cursor:pointer;user-select:none">Fact check ▾</summary>
+    <div style="padding:4px 0">${rows}</div>
+  </details>`
+}
+
+function renderShootCard(shootCard, idea) {
+  if (!shootCard) return '<p style="color:var(--muted)">No shoot card data.</p>'
+  let html = ''
+  if (idea?.title) html += `<div class="content-item"><div class="ci-label">For</div>${esc(idea.title)}</div>`
+
+  const props = shootCard.props || shootCard.prop_list || []
+  if (props.length) {
+    html += `<div class="content-item"><div class="ci-label">Props (${props.length})</div>${
+      props.map(p => `<div style="font-size:10px;padding:2px 0;border-bottom:1px solid var(--border)">${esc(typeof p==='string'?p:p.name||JSON.stringify(p))}</div>`).join('')
+    }</div>`
+  }
+
+  const angles = shootCard.angles || shootCard.angle_specs || []
+  if (angles.length) {
+    html += `<div class="content-item"><div class="ci-label">Required angles</div>${
+      angles.map(a => `<div style="font-size:10px;padding:2px 0">• ${esc(typeof a==='string'?a:a.angle||a.type||JSON.stringify(a))}</div>`).join('')
+    }</div>`
+  }
+
+  const shots = shootCard.shots || shootCard.shot_list || []
+  if (shots.length) {
+    html += `<div class="content-item"><div class="ci-label">Shots (${shots.length})</div>${
+      shots.map((s,i) => `<div style="font-size:10px;padding:3px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--muted)">${i+1}.</span> ${esc(typeof s==='string'?s:s.description||s.label||JSON.stringify(s))}
+      </div>`).join('')
+    }</div>`
+  }
+
+  if (shootCard.secondary_capture) {
+    html += `<div class="content-item" style="border-color:var(--blue)"><div class="ci-label" style="color:var(--blue)">Secondary capture</div>Process pillar — behind-the-scenes</div>`
+  }
+
+  if (!html) {
+    html = `<pre style="font-size:9px;color:var(--muted);white-space:pre-wrap">${esc(JSON.stringify(shootCard,null,2))}</pre>`
+  }
+  return html
+}
+
+function renderQCReport(video) {
+  if (!video) return '<p style="color:var(--muted)">No video data.</p>'
+  const rp = video.release_packet
+  if (!rp?.qc) {
+    return `<div class="content-item"><div class="ci-label">Video</div>${esc(video.title)}</div>
+    <p style="color:var(--muted);margin-top:8px">QC has not been run yet.</p>
+    <button class="btn btn-primary btn-full" style="margin-top:10px" onclick="runQCForVideo('${video.id}')">Run QC now</button>`
+  }
+  const qc = rp.qc
+  const pass = qc.overall_pass
+  const passColor = pass ? '#5BA85B' : '#C45C5C'
+  const checks = Object.entries(qc)
+    .filter(([k]) => k !== 'overall_pass' && k !== 'notes')
+    .map(([k,v]) => {
+      const ok = v === true || v === 'pass'
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:10px;color:var(--muted)">${esc(k.replace(/_/g,' '))}</span>
+        <span style="color:${ok?'#5BA85B':'#C45C5C'}">${ok?'✓':'✗'}</span>
+      </div>`
+    }).join('')
+  let html = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+    <span style="font-size:16px;color:${passColor}">${pass?'✓ Pass':'✗ Fail'}</span>
+    <span style="font-size:10px;color:var(--muted)">${esc(video.title)}</span>
+  </div>
+  ${checks ? `<div style="margin-bottom:10px">${checks}</div>` : ''}
+  ${qc.notes ? `<div class="content-item"><div class="ci-label">Notes</div>${esc(qc.notes)}</div>` : ''}`
+  if (pass) {
+    html += `<div class="confirm-box" style="margin-top:12px">
+      <p>QC passed. Ready for release.</p>
+      <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="showApproveModal('${video.id}','${esc(video.title).replace(/'/g,"\\'")}')">Approve release</button>
+    </div>`
+  }
+  return html
+}
+
+function renderReleasePacket(video) {
+  if (!video) return '<p style="color:var(--muted)">No video data.</p>'
+  const rp = video.release_packet
+  if (!rp) return `<div class="content-item"><div class="ci-label">Video</div>${esc(video.title)}</div>
+    <p style="color:var(--muted);margin-top:8px">No release packet. Run QC first.</p>
+    <button class="btn btn-primary btn-full" style="margin-top:10px" onclick="runQCForVideo('${video.id}')">Run QC now</button>`
+  const pass = rp.qc?.overall_pass
+  let html = `<div class="content-item"><div class="ci-label">Video</div>${esc(video.title)}</div>
+  <div class="content-item" style="border-color:${pass?'#3A5A3A':'#5A3A3A'}">
+    <div class="ci-label">QC</div>
+    <span style="color:${pass?'#5BA85B':'#C45C5C'}">${pass?'✓ Pass':'✗ Fail'}</span>
+  </div>`
+  if (rp.selected_title) html += `<div class="content-item"><div class="ci-label">Selected title</div>${esc(rp.selected_title)}</div>`
+  if (rp.hook_options?.length) {
+    html += `<div class="content-item"><div class="ci-label">Hook options</div>${
+      rp.hook_options.map((h,i)=>`<div style="font-size:10px;padding:3px 0;border-bottom:1px solid var(--border)">${i+1}. ${esc(h)}</div>`).join('')
+    }</div>`
+  }
+  if (rp.qc?.notes) html += `<div class="content-item"><div class="ci-label">Notes</div>${esc(rp.qc.notes)}</div>`
+  if (pass) {
+    html += `<button class="btn btn-primary btn-full" style="margin-top:12px" onclick="showApproveModal('${video.id}','${esc(video.title).replace(/'/g,"\\'")}')">Approve release</button>`
+  }
+  return html
+}
+
+function renderApproveRelease(video) {
+  if (!video) return '<p style="color:var(--muted)">No video found.</p>'
+  const rp = video.release_packet
+  const pass = rp?.qc?.overall_pass
+  if (!rp) {
+    return `<div class="content-item"><div class="ci-label">Video</div>${esc(video.title)}</div>
+    <p style="color:var(--muted);margin-top:8px">No release packet. Run QC first.</p>
+    <button class="btn btn-primary btn-full" style="margin-top:10px" onclick="runQCForVideo('${video.id}')">Run QC now</button>`
+  }
+  let html = `<div class="content-item"><div class="ci-label">Video</div>
+    <div style="font-size:12px;color:var(--text);margin-top:2px">${esc(video.title)}</div>
+  </div>
+  <div class="content-item" style="border-color:${pass?'#3A5A3A':'#5A3A3A'}">
+    <div class="ci-label">QC Status</div>
+    <span style="color:${pass?'#5BA85B':'#C45C5C'}">${pass?'✓ Passed':'✗ Failed — cannot approve'}</span>
+  </div>`
+  if (!pass) return html
+  html += `<div class="confirm-box" style="margin-top:12px">
+    <p>Approve <strong>${esc(video.title)}</strong> for release?</p>
+    <p style="font-size:10px;color:var(--muted);margin-top:4px">Lucien will run platform adaptation. Video moves to Scheduled.</p>
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button class="btn btn-primary" onclick="showApproveModal('${video.id}','${esc(video.title).replace(/'/g,"\\'")}')">Approve release</button>
+      <button class="btn btn-danger" onclick="showRewriteFormFor('${video.id}')">Request fix</button>
+    </div>
+  </div>`
+  return html
+}
+
+function renderPlatformPacket(video) {
+  if (!video) return '<p style="color:var(--muted)">No video data.</p>'
+  const rp = video.release_packet
+  if (!rp) return `<div class="content-item"><div class="ci-label">Video</div>${esc(video.title)}</div><p style="color:var(--muted);margin-top:8px">No packet. Run QC first.</p>`
+  const assets = rp.platform_assets || {}
+  const tiktok = assets.tiktok || assets.TikTok || rp.tiktok || {}
+  const ig = assets.instagram || assets.Instagram || rp.instagram || {}
+  let html = `<div class="content-item"><div class="ci-label">Video</div>${esc(video.title)}</div>`
+  if (tiktok.caption) html += `<div class="content-item"><div class="ci-label">TikTok</div><div style="font-size:10px;white-space:pre-wrap;line-height:1.6;margin-top:4px">${esc(tiktok.caption)}</div></div>`
+  if (ig.caption) html += `<div class="content-item"><div class="ci-label">Instagram</div><div style="font-size:10px;white-space:pre-wrap;line-height:1.6;margin-top:4px">${esc(ig.caption)}</div></div>`
+  if (!tiktok.caption && !ig.caption) {
+    html += `<pre style="font-size:9px;color:var(--muted);white-space:pre-wrap;padding:8px;background:var(--surface2);border-radius:4px;overflow-x:auto;margin-top:8px">${esc(JSON.stringify(rp.platform_assets||rp,null,2))}</pre>`
+  }
+  return html
+}
+
+function renderGroceryList(gl) {
+  const items = gl.items || []
+  if (!items.length) return `<p style="color:var(--muted)">Nothing to buy this week.</p>`
+  const byCat = {}
+  for (const it of items) {
+    const c = it.category || 'Other'
+    ;(byCat[c] = byCat[c]||[]).push(it)
+  }
+  let html = `<div style="font-size:10px;color:var(--muted);margin-bottom:10px">Week of ${gl.week_id||thisMonday()}</div>`
+  for (const [cat, catItems] of Object.entries(byCat)) {
+    html += `<div class="ci-label" style="margin-top:10px">${esc(cat)}</div>`
+    for (const it of catItems) {
+      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:11px;color:var(--text)">${esc(it.name||it.ingredient_name||'')}</div>
+          <div style="font-size:9px;color:var(--muted)">${it.to_buy||0} ${it.unit||''}</div>
+        </div>
+        <span style="font-size:10px;color:var(--accent)">$${(it.estimated_cost||0).toFixed(2)}</span>
+      </div>`
+    }
+  }
+  html += `<div style="display:flex;justify-content:space-between;padding:8px 0;margin-top:4px;border-top:1px solid var(--border)">
+    <span style="font-size:11px;color:var(--muted)">Total estimated</span>
+    <span style="font-size:12px;color:var(--accent)">$${(gl.total_estimated_cost||0).toFixed(2)}</span>
+  </div>`
+  return html
+}
+
+function renderBudgetPanel(ledger) {
+  const limit = ledger.budget_limit || 100
+  const planned = ledger.planned_spend || 0
+  const actual = ledger.actual_spend || 0
+  const remaining = limit - actual
+  const pct = Math.min(100, Math.round((actual / limit) * 100))
+  const over = actual > limit
+  return `
+    <div class="content-item"><div class="ci-label">Week of ${ledger.week_id}</div></div>
+    <div style="margin:8px 0">
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px">
+        <span style="color:var(--muted)">Spent</span>
+        <span style="color:${over?'#C45C5C':'var(--text)'}">$${actual.toFixed(2)} / $${limit.toFixed(2)}</span>
+      </div>
+      <div class="budget-track">
+        <div class="budget-fill" style="width:${pct}%;background:${over?'#C45C5C':'var(--accent)'}"></div>
+      </div>
+    </div>
+    <div class="content-item" style="${over?'border-color:#C45C5C':''}">
+      <div class="ci-label">Remaining</div>
+      <span style="font-size:13px;color:${over?'#C45C5C':'#5BA85B'}">$${remaining.toFixed(2)}</span>
+    </div>
+    <div class="content-item">
+      <div class="ci-label">Planned spend</div>$${planned.toFixed(2)}
+    </div>
+    ${over ? `<p style="color:#C45C5C;font-size:10px;margin-top:8px">Over budget by $${(actual-limit).toFixed(2)}</p>` : ''}
+  `
+}
+
+function renderWeeklyMemo(report) {
+  let html = ''
+  if (report.best_performer) html += `<div class="content-item" style="border-color:#3A5A3A"><div class="ci-label" style="color:#5BA85B">Best performer</div>${esc(report.best_performer)}</div>`
+  if (report.worst_performer) html += `<div class="content-item" style="border-color:#5A3A3A"><div class="ci-label" style="color:#C45C5C">Needs work</div>${esc(report.worst_performer)}</div>`
+  if (report.hypothesis) html += `<div class="content-item"><div class="ci-label">Hypothesis</div><div style="font-style:italic;font-size:10px;line-height:1.6">${esc(report.hypothesis)}</div></div>`
+  if (report.recommendations?.length) {
+    html += `<div class="content-item"><div class="ci-label">Recommendations</div>${report.recommendations.map(r=>`<div style="font-size:10px;padding:3px 0;border-bottom:1px solid var(--border)">• ${esc(r)}</div>`).join('')}</div>`
+  }
+  if (report.hook_experiments?.length) {
+    html += `<div class="content-item"><div class="ci-label">Hook experiments next week</div>${report.hook_experiments.map(h=>`<div style="font-size:10px;padding:2px 0">→ ${esc(h)}</div>`).join('')}</div>`
+  }
+  return html || `<p style="color:var(--muted)">No insights available for this week.</p>`
+}
+
+function renderHookRankings(data) {
+  return (data.formats || []).map((f, i) => `
+    <div class="content-item" ${i===0?'style="border-color:var(--accent)"':''}>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="ci-label">${esc(f.name)}</div>
+        <span style="font-size:9px;color:${i===0?'var(--accent)':'var(--muted)'}">${esc(f.priority)}</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${esc(f.metric)}</div>
+      ${f.note ? `<div style="font-size:9px;color:var(--text);margin-bottom:4px">${esc(f.note)}</div>` : ''}
+      ${(f.examples||[]).map(ex=>`<div style="font-size:9px;font-style:italic;padding:1px 0;color:var(--text)">"${esc(ex)}"</div>`).join('')}
+    </div>
+  `).join('') || '<p style="color:var(--muted)">No hook data.</p>'
+}
+
+function renderSystemPrompt(agentId) {
+  const prompts = {
+    julien:  `Tag each IdeaCard with exactly one pillar:\nTechnique | Ingredient | Dish | Process | Opinion\n\nNo 2 consecutive from same pillar.\nFocus: French-Vietnamese intersection in Montreal.\nDifferentiator: no one owns this in short-format.`,
+    marcel:  `Generate TUTORIAL + PERSONAL script variants.\nVoice: precise, minimal, no superlatives.\nReject: "amazing", "incredible", "you'll love this".\nPropose 3 hook options per script from approved formats.\nInclude fact-check block: temps, ratios, technique claims.`,
+    camille: `Generate shoot cards from script body.\nRequired: overhead, 45°, macro — all three angles.\nFilm window: 16:30–18:00 (Thursday: 16:30–17:30).\nShorter shot list on Thursdays automatically.\nSecondary capture flag for Process pillar.`,
+    pierre:  `Generate edit directive from shoot card + scripts.\nInclude: texture inserts, transition notes, cut rhythm.\nWrite a haiku about the edit.`,
+    colette: `Validate French-Vietnamese POV is present or not contradicted.\nReject: "amazing", "incredible", "you'll love this".\nCheck temps, ratios, all technique claims.\nApproval gate — do not release without QC pass.`,
+    armand:  `Manage grocery procurement and weekly budget.\nGenerate shopping lists from planned recipes.\nTrack actual vs planned spend.\nBudget-conscious: Montreal market focus.`,
+    etienne: `Generate Friday 1-pager: best/worst + hypothesis.\nHook format performance ranking (updated weekly).\nPropose 2 hook experiments for next week.\nInclude budget actuals from Armand.`,
+    lucien:  `TikTok + Instagram variants per release.\nCaption formula: Hook → What was made → Comment RECETTE → hashtags.\nFrench variant required on every Release Packet.\nManyChat config: RECETTE, METHODE, TOOLS.`,
+  }
+  const p = prompts[agentId] || 'No system prompt available.'
+  return `<pre style="font-family:var(--mono);font-size:10px;color:var(--muted);white-space:pre-wrap;line-height:1.7;background:var(--surface2);padding:10px;border-radius:4px;overflow-x:auto">${esc(p)}</pre>`
+}
+
+function renderHookStrategy() {
+  return `
+    <div class="content-item" style="border-color:var(--accent)">
+      <div class="ci-label" style="color:var(--accent)">Cultural bridge ★ Priority</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px">Use at least 1×/week. This is the differentiator.</div>
+      <div style="font-size:10px;font-style:italic;margin-top:6px;line-height:1.8">
+        "French technique, Vietnamese soul"<br>
+        "What Indochine taught both cuisines"<br>
+        "This dish exists because of colonialism."
+      </div>
+    </div>
+    <div class="content-item">
+      <div class="ci-label">Secret / Forbidden</div>
+      <div style="font-size:10px;color:var(--muted)">High comment rate</div>
+      <div style="font-size:10px;font-style:italic;margin-top:4px">"This technique restaurants don't want you to know"</div>
+    </div>
+    <div class="content-item">
+      <div class="ci-label">Contrast</div>
+      <div style="font-size:10px;color:var(--muted)">High save rate</div>
+      <div style="font-size:10px;font-style:italic;margin-top:4px">"1 hour vs 10 minutes — same result"</div>
+    </div>
+    <div class="content-item">
+      <div class="ci-label">Direct</div>
+      <div style="font-size:10px;color:var(--muted)">High share rate</div>
+      <div style="font-size:10px;font-style:italic;margin-top:4px">"You've been doing this wrong"</div>
+    </div>
+  `
+}
+
+function renderPurchaseForm() {
+  const inp = 'width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none;box-sizing:border-box'
+  return `<div class="confirm-box">
+    <p style="margin-bottom:10px">Log a purchase</p>
+    <input id="pur-store" placeholder="Store name" style="${inp};margin-bottom:6px">
+    <input id="pur-total" type="number" step="0.01" min="0" placeholder="Total ($)" style="${inp};margin-bottom:8px">
+    <button class="btn btn-primary btn-full" onclick="submitPurchase()">Log purchase</button>
+  </div>`
+}
+
+// ─── Action dispatch ──────────────────────────────────────────────────────────
+async function dispatch(agentId, key) {
+  expandPanel()
+  switch (key) {
+
+    // ── Julien ───────────────────────────────────────────────────────────────
+    case 'view_ideas':
+    case 'generate_idea': {
+      _panelLoad('Idea Draft')
+      const idea = await safeApi('GET', '/ideas/draft')
+      if (!idea) { _panelErr('Idea Draft', 'Could not generate idea — is the API running?'); break }
+      showContentView('Idea Draft', renderIdeaCard(idea))
+      break
+    }
+    case 'hook_strategy': {
+      showContentView('Hook Strategy', renderHookStrategy())
+      break
+    }
+
+    // ── Marcel ───────────────────────────────────────────────────────────────
+    case 'view_draft':
+    case 'approve_script': {
+      _panelLoad('Scripts')
+      const vids = await safeApi('GET', '/videos?status=SCRIPT')
+      if (!vids?.length) { _panelEmpty('Scripts', 'No scripts awaiting review.'); break }
+      const full = await safeApi('GET', `/videos/${vids[0].id}`)
+      if (!full) { _panelErr('Scripts', 'Could not load video.'); break }
+      showContentView('Script Review', renderScriptPanel(full, key === 'approve_script'))
+      break
+    }
+    case 'request_rewrite': {
+      const vids = await safeApi('GET', '/videos?status=SCRIPT')
+      if (!vids?.length) { _panelEmpty('Request Rewrite', 'No scripts to rewrite.'); break }
+      showContentView('Request Rewrite', _rewriteForm(vids[0].id))
+      break
+    }
+
+    // ── Camille ──────────────────────────────────────────────────────────────
+    case 'view_shoot_card': {
+      _panelLoad('Shoot Card')
+      const run = await safeApi('GET', '/pipeline/runs/latest')
+      if (!run?.shoot_card) { _panelEmpty('Shoot Card', 'No shoot cards yet. Run the pipeline first.'); break }
+      showContentView('Shoot Card', renderShootCard(run.shoot_card, run.idea))
+      break
+    }
+    case 'regen_thursday': {
+      toast('Thursday regeneration — not yet wired to pipeline.', 'ok')
+      break
+    }
+
+    // ── Pierre ───────────────────────────────────────────────────────────────
+    case 'view_edit_dir': {
+      _panelLoad('Edit Directive')
+      const qcVids = await safeApi('GET', '/videos?status=QC') || []
+      const scriptVids = await safeApi('GET', '/videos?status=SCRIPT') || []
+      if (qcVids.length) {
+        const full = await safeApi('GET', `/videos/${qcVids[0].id}`)
+        const rp = full?.release_packet
+        if (rp?.edit_directive) {
+          const ed = rp.edit_directive
+          let html = `<div class="content-item"><div class="ci-label">Video</div>${esc(full.title)}</div>`
+          if (ed.cut_rhythm) html += `<div class="content-item"><div class="ci-label">Cut rhythm</div>${esc(ed.cut_rhythm)}</div>`
+          if (ed.texture_inserts?.length) html += `<div class="content-item"><div class="ci-label">Texture inserts</div>${ed.texture_inserts.map(t=>`<div style="font-size:10px;padding:2px 0">• ${esc(t)}</div>`).join('')}</div>`
+          if (ed.transition_notes) html += `<div class="content-item"><div class="ci-label">Transitions</div>${esc(ed.transition_notes)}</div>`
+          if (ed.haiku) html += `<div class="content-item" style="border-color:var(--blue)"><div class="ci-label" style="color:var(--blue)">Haiku</div><pre style="font-family:var(--serif);font-style:italic;font-size:12px;white-space:pre-wrap;margin-top:4px;line-height:1.8">${esc(ed.haiku)}</pre></div>`
+          showContentView('Edit Directive', html)
+        } else {
+          showContentView('Edit Directive', `<div class="content-item"><div class="ci-label">Video</div>${esc(full?.title||'—')}</div>
+            <p style="color:var(--muted);margin-top:8px;font-size:10px">Edit directives are generated per QC run and not persisted. Re-run QC to regenerate.</p>
+            <button class="btn btn-primary btn-full" style="margin-top:10px" onclick="runQCForVideo('${qcVids[0].id}')">Re-run QC</button>`)
+        }
+      } else if (scriptVids.length) {
+        showContentView('Edit Directive', `<p style="color:var(--muted);margin-bottom:12px">No edit directives yet. Run QC on a script-ready video.</p>
+          <button class="btn btn-primary btn-full" onclick="runQCForVideo('${scriptVids[0].id}')">Run QC on "${esc(scriptVids[0].title)}"</button>`)
+      } else {
+        _panelEmpty('Edit Directive', 'No videos ready for QC yet.')
+      }
+      break
+    }
+
+    // ── Colette ──────────────────────────────────────────────────────────────
+    case 'view_qc_report': {
+      _panelLoad('QC Report')
+      const qcVids = pendingVideos.length ? pendingVideos : (await safeApi('GET', '/videos?status=QC') || [])
+      if (!qcVids.length) { _panelEmpty('QC Report', 'No videos in QC.'); break }
+      const full = await safeApi('GET', `/videos/${qcVids[0].id}`)
+      showContentView('QC Report', renderQCReport(full))
+      break
+    }
+    case 'view_packet': {
+      _panelLoad('Release Packet')
+      const qcVids = pendingVideos.length ? pendingVideos : (await safeApi('GET', '/videos?status=QC') || [])
+      if (!qcVids.length) { _panelEmpty('Release Packet', 'No release packets yet.'); break }
+      const full = await safeApi('GET', `/videos/${qcVids[0].id}`)
+      showContentView('Release Packet', renderReleasePacket(full))
+      break
+    }
+    case 'approve_release': {
+      _panelLoad('Approve Release')
+      const qcVids = pendingVideos.length ? pendingVideos : (await safeApi('GET', '/videos?status=QC') || [])
+      if (!qcVids.length) { _panelEmpty('Approve Release', 'No videos pending approval.'); break }
+      const full = await safeApi('GET', `/videos/${qcVids[0].id}`)
+      showContentView('Approve Release', renderApproveRelease(full))
+      break
+    }
+
+    // ── Lucien ───────────────────────────────────────────────────────────────
+    case 'view_platform': {
+      _panelLoad('Platform Packet')
+      const vids = await safeApi('GET', '/videos?status=SCHEDULED')
+      if (!vids?.length) { _panelEmpty('Platform Packet', 'No scheduled videos yet.'); break }
+      const full = await safeApi('GET', `/videos/${vids[0].id}`)
+      showContentView('Platform Packet', renderPlatformPacket(full))
+      break
+    }
+
+    // ── Armand ───────────────────────────────────────────────────────────────
+    case 'view_grocery': {
+      _panelLoad('Grocery List')
+      const gl = await safeApi('GET', `/armand/grocery-list/${thisMonday()}`)
+      if (!gl) { _panelErr('Grocery List', 'Could not load grocery list.'); break }
+      showContentView('Grocery List', renderGroceryList(gl))
+      break
+    }
+    case 'simulate_week': {
+      _panelLoad('Budget — This Week')
+      const ledger = await safeApi('GET', `/armand/ledger/${thisMonday()}`)
+      if (!ledger) { _panelErr('Budget', 'Could not load budget.'); break }
+      showContentView('Budget — This Week', renderBudgetPanel(ledger))
+      break
+    }
+    case 'log_purchase': {
+      showContentView('Log Purchase', renderPurchaseForm())
+      break
+    }
+
+    // ── Étienne ──────────────────────────────────────────────────────────────
+    case 'view_memo': {
+      _panelLoad('Weekly Memo')
+      const report = await safeApi('GET', `/etienne/report/${thisMonday()}`)
+      if (!report) { _panelEmpty('Weekly Memo', 'No report for this week yet.'); break }
+      showContentView('Weekly Memo', renderWeeklyMemo(report))
+      break
+    }
+    case 'view_hooks': {
+      _panelLoad('Hook Rankings')
+      const data = await safeApi('GET', '/etienne/hook-rankings')
+      if (!data) { _panelErr('Hook Rankings', 'Could not load.'); break }
+      showContentView('Hook Rankings', renderHookRankings(data))
+      break
+    }
+
+    // ── All agents ───────────────────────────────────────────────────────────
+    case 'system_prompt': {
+      showContentView('System Prompt — ' + AGENT_NAMES[agentId], renderSystemPrompt(agentId))
+      break
+    }
+    default:
+      toast(`Unknown action: ${key}`, 'err')
+  }
+}
+
+// ─── Actions wired to panel buttons ──────────────────────────────────────────
+
+window.saveIdeaDraft = async function() {
+  if (!_currentIdea) return
+  try {
+    await api('POST', '/ideas/save', { title: _currentIdea.title || 'Draft', stream: _currentIdea.stream || 'SHORT', ..._currentIdea })
+    toast(`Draft saved: ${_currentIdea.title}`, 'ok')
+  } catch(e) {
+    toast('Failed to save: ' + (e.message || 'error'), 'err')
+  }
+}
+
+window.runQCForVideo = async function(videoId) {
+  _panelLoad('Running QC…')
+  try {
+    await api('POST', `/pipeline/short/qc/${videoId}`)
+    const video = await safeApi('GET', `/videos/${videoId}`)
+    showContentView('QC Report', renderQCReport(video))
+    toast('QC complete.', 'ok')
+    await pollAgentStatus()
+  } catch(e) {
+    _panelErr('QC Failed', e.message || 'Internal error')
+  }
+}
+
+window.showApproveModal = function(videoId, videoTitle) {
+  const overlay = document.getElementById('modal-overlay')
+  document.getElementById('modal-title').textContent = 'Approve Release'
+  document.getElementById('modal-body').innerHTML = `
+    <p>You are about to approve <strong>${esc(videoTitle)}</strong> for release.</p>
+    <p class="modal-warning" style="margin-top:6px">This cannot be undone.</p>
+  `
+  document.getElementById('modal-confirm-btn').onclick = async function() {
+    try {
+      await api('POST', `/videos/${videoId}/approve`)
+      hideModal()
+      toast('Approved. Video moved to Scheduled.', 'ok')
+      await pollAgentStatus()
+      showView('default')
+    } catch(e) {
+      toast('Failed to approve: ' + (e.message || 'error'), 'err')
+    }
+  }
+  overlay.classList.add('open')
+}
+
+window.hideModal = function() {
+  document.getElementById('modal-overlay').classList.remove('open')
+}
+
+window.showRewriteFormFor = function(videoId) {
+  showContentView('Request Rewrite', _rewriteForm(videoId))
+}
+
+function _rewriteForm(videoId) {
+  return `<div class="confirm-box">
+    <p>Describe what needs to change:</p>
+    <textarea class="feedback-input" id="feedback-text" placeholder="More tension in the hook. Cut the second anecdote…"></textarea>
+    <button class="btn btn-danger btn-full" onclick="submitRewrite('${videoId}')">Send feedback</button>
+  </div>`
+}
+
+window.submitRewrite = async function(videoId) {
+  const fb = document.getElementById('feedback-text')?.value?.trim()
+  if (!fb) { toast('Feedback required.', 'err'); return }
+  try {
+    await api('POST', `/videos/${videoId}/request-changes`, { feedback: fb })
+    toast('Changes requested. Script returned to draft.', 'ok')
+    await pollAgentStatus()
+    showView('default')
+  } catch(e) {
+    toast('Failed: ' + (e.message || 'error'), 'err')
+  }
+}
+
+window.submitPurchase = async function() {
+  const store = document.getElementById('pur-store')?.value?.trim() || 'Unknown'
+  const total = parseFloat(document.getElementById('pur-total')?.value || 0)
+  if (!total || total <= 0) { toast('Enter a valid total.', 'err'); return }
+  try {
+    await api('POST', '/armand/purchase', { store, total, items: [] })
+    toast(`$${total.toFixed(2)} at ${store} — logged.`, 'ok')
+    showView('agent')
+  } catch(e) {
+    toast('Failed to log: ' + (e.message || 'error'), 'err')
+  }
+}
+
+window.switchScriptTab = function(variant) {
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'))
+  document.querySelectorAll('.tab-content').forEach(t => { t.style.display = 'none' })
+  const tab = document.querySelector(`.panel-tab[data-variant="${variant}"]`)
+  if (tab) tab.classList.add('active')
+  const content = document.getElementById(`tab-${variant}`)
+  if (content) content.style.display = 'block'
+}
+
+// Keep old names for La Maison approval-card buttons
+window.approveVideo = function(videoId) {
+  const v = pendingVideos.find(pv => pv.id === videoId)
+  window.showApproveModal(videoId, v?.title || 'this video')
+}
+window.showRewriteForm = window.showRewriteFormFor
+
+// ─── Orchestrator brief ───────────────────────────────────────────────────────
+function buildBriefLines(statusMap, qcVids) {
+  const lines = []
+  const running = AGENTS.filter(id => statusMap[id]?.is_running)
+  if (running.length) {
+    lines.push({ text: `${running.map(id => AGENT_NAMES[id]).join(', ')} working now`, urgent: false })
+  }
+  if (qcVids.length) {
+    lines.push({ text: `${qcVids.length} video${qcVids.length > 1 ? 's' : ''} awaiting your approval`, urgent: true })
+  }
+  const day = new Date().getDay()
+  const isThursday = day === 4
+  const window = isThursday ? '16:30–17:30 (short day)' : '16:30–18:00'
+  lines.push({ text: `Film window: ${window}`, urgent: false })
+  return lines.slice(0, 4)
+}
+
+function renderDefaultPanel(qcVids) {
+  const briefEl = document.getElementById('brief-lines')
+  const lines = buildBriefLines(agentStatusMap, qcVids)
+  briefEl.innerHTML = lines.map(l =>
+    `<div class="brief-line${l.urgent ? ' urgent' : ''}">${esc(l.text)}</div>`
+  ).join('')
+
+  const cardsEl = document.getElementById('approval-cards')
+  if (!qcVids.length) {
+    cardsEl.innerHTML = '<span style="color:var(--muted);font-size:10px">Nothing pending</span>'
+    return
+  }
+  cardsEl.innerHTML = qcVids.map(v => `
+    <div class="approval-card">
+      <div class="approval-card-title">${esc(v.title)}</div>
+      <div class="approval-card-meta">${esc(v.stream)} · ${esc(v.status)}</div>
+      <div class="approval-actions">
+        <button class="btn btn-primary" onclick="showApproveModal('${v.id}','${v.title.replace(/'/g, "\\'")}')">Approve</button>
+        <button class="btn btn-danger" onclick="showRewriteForm('${v.id}')">Fix</button>
+      </div>
+    </div>
+  `).join('')
+}
+
+// ─── API polling ──────────────────────────────────────────────────────────────
+let pollInterval = null
+
+async function pollAgentStatus() {
+  try {
+    const [agents, qcVids] = await Promise.all([
+      safeApi('GET', '/observability/agents') || [],
+      safeApi('GET', '/videos?status=QC') || [],
+    ])
+    agentStatusMap = buildStatusMap(agents || [], qcVids || [])
+    pendingVideos  = qcVids || []
+    renderDefaultPanel(pendingVideos)
+    if (panelAgentId && document.getElementById('panel-agent').style.display !== 'none') {
+      openAgentDetail(panelAgentId)
+    }
+  } catch (e) {
+    console.warn('Poll error:', e)
+  }
+}
+
+// ─── API helpers ──────────────────────────────────────────────────────────────
 async function api(method, path, body) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
-  if (body !== undefined) opts.body = JSON.stringify(body);
-  const res = await fetch(API + path, opts);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'HTTP ' + res.status);
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
   }
-  return res.status === 204 ? null : res.json();
+  if (body) opts.body = JSON.stringify(body)
+  const res = await fetch(path, opts)
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+  return res.json()
 }
 
-// ── Toast ────────────────────────────────────────────────────────────────────
-function toast(msg, type = 'success') {
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.textContent = msg;
-  document.getElementById('toast-container').appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+async function safeApi(method, path, body) {
+  try { return await api(method, path, body) }
+  catch { return null }
 }
 
-// ── Confirm dialog ───────────────────────────────────────────────────────────
-function confirmDialog(title, msg) {
-  return new Promise(resolve => {
-    document.getElementById('confirm-title').textContent = title;
-    document.getElementById('confirm-msg').textContent = msg;
-    const dlg = document.getElementById('confirm-dialog');
-    const btn = document.getElementById('confirm-ok-btn');
-    const handler = () => { resolve(true); dlg.close(); btn.removeEventListener('click', handler); };
-    btn.addEventListener('click', handler);
-    dlg.addEventListener('close', () => resolve(false), { once: true });
-    dlg.showModal();
-  });
-}
-
-// ── Escape HTML ──────────────────────────────────────────────────────────────
-function esc(str) {
-  if (str == null) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
-// ── Tab navigation ─────────────────────────────────────────────────────────
-const TAB_LOADERS = {
-  overview: loadOverview, videos: loadVideos, ingredients: loadIngredients,
-  recipes: loadRecipes, grocery: loadGroceryTab, analytics: loadAnalytics, agents: loadAgents,
-};
-const _loaded = new Set();
-
-document.getElementById('tabnav').addEventListener('click', e => {
-  const btn = e.target.closest('.tab-btn');
-  if (!btn) return;
-  const tab = btn.dataset.tab;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('tab-' + tab).classList.add('active');
-  localStorage.setItem('activeTab', tab);
-  if (!_loaded.has(tab) && TAB_LOADERS[tab]) { _loaded.add(tab); TAB_LOADERS[tab](); }
-});
-
-(function restoreTab() {
-  const saved = localStorage.getItem('activeTab');
-  if (saved && saved !== 'overview') {
-    const btn = document.querySelector(`[data-tab="${saved}"]`);
-    if (btn) { btn.click(); return; }
-  }
-  _loaded.add('overview');
-  loadOverview();
-})();
-
-function switchTab(name) { document.querySelector(`[data-tab="${name}"]`)?.click(); }
-
-// ── Emoji helpers ────────────────────────────────────────────────────────────
-function recipeEmoji(title) {
-  if (!title) return '🍽️';
-  const t = title.toLowerCase();
-  if (/pasta|spaghetti|noodle|linguine|penne|fettuccine|carbonara|bolognese|tagliatelle/.test(t)) return '🍝';
-  if (/pizza/.test(t)) return '🍕';
-  if (/burger|sandwich|wrap/.test(t)) return '🍔';
-  if (/soup|broth|chowder|bisque|ramen/.test(t)) return '🍲';
-  if (/salad/.test(t)) return '🥗';
-  if (/cake|dessert|cookie|brownie|tart|pie|cheesecake/.test(t)) return '🎂';
-  if (/chocolate/.test(t)) return '🍫';
-  if (/chicken/.test(t)) return '🍗';
-  if (/fish|salmon|tuna|seafood|shrimp|prawn|cod/.test(t)) return '🐟';
-  if (/steak|beef|meat|lamb/.test(t)) return '🥩';
-  if (/rice|risotto|paella|fried rice/.test(t)) return '🍚';
-  if (/egg|omelette|frittata|scramble/.test(t)) return '🍳';
-  if (/bread|toast|bagel|focaccia/.test(t)) return '🍞';
-  if (/taco|burrito|quesadilla|nacho/.test(t)) return '🌮';
-  if (/curry|stew|dhal/.test(t)) return '🍛';
-  if (/smoothie|juice|drink|shake/.test(t)) return '🥤';
-  if (/pancake|waffle|breakfast/.test(t)) return '🥞';
-  if (/ice cream|gelato|sorbet/.test(t)) return '🍦';
-  if (/avocado|guacamole/.test(t)) return '🥑';
-  return '🍽️';
-}
-
-function ingredientEmoji(name) {
-  if (!name) return '✦';
-  const n = name.toLowerCase();
-  if (/tomato/.test(n)) return '🍅';
-  if (/garlic/.test(n)) return '🧄';
-  if (/onion/.test(n)) return '🧅';
-  if (/chicken|poultry/.test(n)) return '🍗';
-  if (/beef|steak/.test(n)) return '🥩';
-  if (/fish|salmon|tuna|cod|sea/.test(n)) return '🐟';
-  if (/shrimp|prawn/.test(n)) return '🦐';
-  if (/pasta|noodle|spaghetti|penne|fettuccine/.test(n)) return '🍝';
-  if (/rice/.test(n)) return '🍚';
-  if (/potato/.test(n)) return '🥔';
-  if (/carrot/.test(n)) return '🥕';
-  if (/egg/.test(n)) return '🥚';
-  if (/butter/.test(n)) return '🧈';
-  if (/milk|cream/.test(n)) return '🥛';
-  if (/cheese/.test(n)) return '🧀';
-  if (/lemon|lime/.test(n)) return '🍋';
-  if (/pepper/.test(n)) return '🌶️';
-  if (/mushroom/.test(n)) return '🍄';
-  if (/broccoli/.test(n)) return '🥦';
-  if (/spinach|lettuce|kale|arugula/.test(n)) return '🥬';
-  if (/avocado/.test(n)) return '🥑';
-  if (/olive|oil/.test(n)) return '🫒';
-  if (/salt/.test(n)) return '🧂';
-  if (/herb|basil|parsley|cilantro|thyme|rosemary|mint/.test(n)) return '🌿';
-  if (/flour/.test(n)) return '🌾';
-  if (/sugar/.test(n)) return '🍬';
-  if (/chocolate/.test(n)) return '🍫';
-  if (/apple/.test(n)) return '🍎';
-  if (/berry|strawberry|blueberry|raspberry/.test(n)) return '🍓';
-  if (/bread/.test(n)) return '🍞';
-  if (/wine/.test(n)) return '🍷';
-  if (/water|broth|stock/.test(n)) return '💧';
-  if (/bean|lentil/.test(n)) return '🫘';
-  if (/corn/.test(n)) return '🌽';
-  if (/pumpkin|squash/.test(n)) return '🎃';
-  return '✦';
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// TAB 1: OVERVIEW
-// ════════════════════════════════════════════════════════════════════════════
+// ─── Utilities ────────────────────────────────────────────────────────────────
 function thisMonday() {
-  const d = new Date();
-  const day = d.getDay();
-  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
-  return d.toISOString().slice(0, 10);
+  const d = new Date()
+  const day = d.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  const mon = new Date(d)
+  mon.setDate(d.getDate() + diff)
+  return mon.toISOString().split('T')[0]
 }
 
-function loadOverview() { loadSummary(); loadReport(); loadGroceryCard(); loadCosts(); loadSlos(); }
-
-const CARD_TITLES = { 'budget-card': 'Budget', 'pipeline-card': 'Pipeline', 'queue-card': 'In production' };
-
-async function loadSummary() {
-  try {
-    const d = await api('GET', '/dashboard/summary');
-    const b = d.budget;
-    const pct = Math.min(100, b.budget_limit > 0 ? (b.planned_spend / b.budget_limit) * 100 : 0);
-    const cls = pct > 100 ? 'over' : pct > 80 ? 'warn' : '';
-    document.getElementById('budget-card').innerHTML = `
-      <div class="card-title">Budget — week of ${b.week_id}</div>
-      <div class="budget-bar"><div class="budget-bar-fill ${cls}" style="width:${pct.toFixed(1)}%"></div></div>
-      <div class="stat">Planned <span>$${b.planned_spend.toFixed(2)}</span></div>
-      <div class="stat">Actual  <span>$${b.actual_spend.toFixed(2)}</span></div>
-      <div class="stat">Limit   <span>$${b.budget_limit.toFixed(2)}</span></div>
-      <div class="stat">Remaining <span>$${(b.budget_limit - b.planned_spend).toFixed(2)}</span></div>`;
-    const order = ['IDEA','SCRIPT','SHOT','EDIT','QC','READY','SCHEDULED','PUBLISHED'];
-    const badges = order.map(s => d.pipeline[s] ? `<span class="badge ${s}">${s} ${d.pipeline[s]}</span>` : '').join('');
-    document.getElementById('pipeline-card').innerHTML =
-      `<div class="card-title">Pipeline</div><div class="badge-row">${badges || '<span class="empty">No videos yet</span>'}</div>`;
-    const items = (d.queue || []).map(v =>
-      `<div class="queue-item"><div class="queue-title">${esc(v.title)}</div><span class="badge ${v.status}">${v.status}</span></div>`).join('');
-    document.getElementById('queue-card').innerHTML =
-      `<div class="card-title">In production</div>${items || `<p class="empty">Nothing in progress — <a class="link" href="#" onclick="switchTab('videos')">create a new idea →</a></p>`}`;
-  } catch (e) {
-    ['budget-card','pipeline-card','queue-card'].forEach(id => {
-      document.getElementById(id).innerHTML = `<div class="card-title">${CARD_TITLES[id]}</div><p class="loading">API unreachable</p>`;
-    });
-  }
+function timeSince(isoStr) {
+  const diff = Date.now() - new Date(isoStr).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
 }
 
-async function loadGroceryCard() {
-  const monday = thisMonday();
-  try {
-    const d = await api('GET', `/armand/grocery-list/${monday}`);
-    if (!d.items || d.items.length === 0) {
-      document.getElementById('grocery-card').innerHTML =
-        `<div class="card-title">Grocery list <span class="muted-label">${monday}</span></div><p class="empty">No shopping needed this week.</p>`;
-      return;
-    }
-    const rows = d.items.map(i =>
-      `<div class="grocery-item"><span>${esc(i.name)} <small class="item-qty">${i.to_buy} ${i.unit || ''}</small></span><span>$${i.estimated_cost.toFixed(2)}</span></div>`).join('');
-    document.getElementById('grocery-card').innerHTML =
-      `<div class="card-title">Grocery list <span class="muted-label">${monday}</span></div>${rows}<div class="stat stat--total">Total <span>$${d.total_estimated_cost.toFixed(2)}</span></div>`;
-  } catch (e) {
-    document.getElementById('grocery-card').innerHTML = `<div class="card-title">Grocery list</div><p class="loading">Could not load.</p>`;
-  }
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 }
 
-async function loadReport() {
-  const monday = thisMonday();
-  try {
-    const d = await api('GET', `/etienne/report/${monday}`);
-    if (!d.insights || d.insights.length === 0) {
-      document.getElementById('report-card').innerHTML =
-        '<div class="card-title">Weekly insights</div><p class="empty">No insights for this week. Data populates after videos are published.</p>';
-      return;
-    }
-    const insightRows = d.insights.map(i => `<div class="insight-row">${esc(i)}</div>`).join('');
-    const recRows = (d.recommendations || []).map(r => `<div class="rec-row">${esc(r)}</div>`).join('');
-    document.getElementById('report-card').innerHTML = `
-      <div class="card-title">Weekly insights <span class="muted-label">${monday}</span></div>
-      <div class="insights-list">${insightRows}</div>
-      ${recRows ? `<div class="section-label">Recommendations</div>${recRows}` : ''}
-      <div class="stat stat--total">Views <span>${(d.total_views || 0).toLocaleString()}</span></div>
-      <div class="stat">Avg retention <span>${(d.avg_retention_pct || 0).toFixed(1)}%</span></div>`;
-  } catch (e) {
-    document.getElementById('report-card').innerHTML = '<div class="card-title">Weekly insights</div><p class="loading">Could not load.</p>';
-  }
+let toastTimer = null
+function toast(msg, type = 'ok') {
+  const area = document.getElementById('toast-area')
+  const el = document.createElement('div')
+  el.className = `toast ${type}`
+  el.textContent = msg
+  area.appendChild(el)
+  setTimeout(() => el.remove(), 3500)
 }
 
-async function loadCosts() {
-  try {
-    const d = await api('GET', '/observability/costs');
-    const total = d.total_cost_usd || 0;
-    const agents = (d.by_agent || []).sort((a, b) => b.cost_usd - a.cost_usd);
-    const maxCost = agents.reduce((m, a) => Math.max(m, a.cost_usd), 0.0001);
-    const rows = agents.length > 0
-      ? agents.map(a => {
-          const pct = Math.round((a.cost_usd / maxCost) * 100);
-          return `<div class="agent-bar-row">
-            <div class="agent-bar-label">${esc(a.agent)}</div>
-            <div class="agent-bar-track"><div class="agent-bar-fill" style="width:${pct}%"></div></div>
-            <div class="agent-bar-cost">$${a.cost_usd.toFixed(4)}</div>
-          </div>`;
-        }).join('')
-      : '<p class="empty">No LLM calls recorded yet.</p>';
-    document.getElementById('cost-card').innerHTML = `<div class="card-title">LLM cost this week</div><div class="stat stat--spaced">Total <span>$${total.toFixed(4)}</span></div>${rows}`;
-  } catch (e) {
-    document.getElementById('cost-card').innerHTML = '<div class="card-title">LLM cost this week</div><p class="loading">Could not load.</p>';
-  }
-}
+// ─── Init ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  initCanvas()
+  buildTileMap()
+  initPositions()
+  initWaypoints()
+  initEmotionState()
+  requestAnimationFrame(animate)
+  showView('default')
+  expandPanel()
+  pollAgentStatus()
+  pollInterval = setInterval(pollAgentStatus, 5000)
+})
 
-async function loadSlos() {
-  try {
-    const slos = await api('GET', '/observability/slo');
-    const rows = slos.map(s => {
-      const cls = s.passing ? 'pass' : 'fail';
-      const val = s.current_value != null
-        ? (typeof s.current_value === 'number' ? s.current_value.toLocaleString(undefined, { maximumFractionDigits: 1 }) : s.current_value)
-        : '—';
-      const unit = s.unit === 'percent' ? '%' : s.unit === 'ms' ? ' ms' : s.unit === 'usd' ? ' USD' : ` ${s.unit}`;
-      return `<div class="slo-row"><div class="slo-dot ${cls}"></div><div class="slo-desc">${esc(s.description)}</div><div class="slo-val">${val}${unit}</div></div>`;
-    }).join('');
-    document.getElementById('slo-card').innerHTML = `<div class="card-title">SLOs</div>${rows}`;
-  } catch (e) {
-    document.getElementById('slo-card').innerHTML = '<div class="card-title">SLOs</div><p class="loading">Could not load.</p>';
-  }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// TAB 2: VIDEOS (Kanban)
-// ════════════════════════════════════════════════════════════════════════════
-const STATUSES = ['IDEA','SCRIPT','SHOT','EDIT','QC','READY','SCHEDULED','PUBLISHED'];
-let _currentVideoId = null;
-
-async function loadVideos() {
-  const board = document.getElementById('kanban-board');
-  try {
-    const videos = await api('GET', '/videos');
-    State.set('videos', videos);
-    renderKanban(videos);
-  } catch (e) {
-    board.innerHTML = `<p class="loading">Could not load videos: ${esc(e.message)}</p>`;
-  }
-}
-
-function renderKanban(videos) {
-  const board = document.getElementById('kanban-board');
-  const byStatus = {};
-  STATUSES.forEach(s => { byStatus[s] = []; });
-  (videos || []).forEach(v => { if (byStatus[v.status]) byStatus[v.status].push(v); });
-
-  board.innerHTML = STATUSES.map(status => {
-    const cards = (byStatus[status] || []).map(v => `
-      <div class="kanban-card" onclick="openVideoDetail('${v.id}')">
-        <div class="kanban-card-title">${esc(v.title)}</div>
-        <div class="kanban-card-meta"><span class="badge ${v.stream || ''}">${v.stream || '—'}</span></div>
-      </div>`).join('');
-    // "+ New idea" lives only inside the IDEA column footer
-    const footer = status === 'IDEA'
-      ? `<div class="kanban-col-footer"><button class="btn btn-ghost btn-sm kanban-add-btn" onclick="openNewIdea()">+ New idea</button></div>`
-      : '';
-    return `<div class="kanban-col">
-      <div class="kanban-col-header"><span>${status}</span><span class="kanban-col-count">${byStatus[status].length}</span></div>
-      <div class="kanban-cards">${cards}</div>
-      ${footer}
-    </div>`;
-  }).join('');
-}
-
-async function openVideoDetail(videoId) {
-  _currentVideoId = videoId;
-  try {
-    const video = await api('GET', `/videos/${videoId}`);
-    const dlg = document.getElementById('video-dialog');
-    document.getElementById('vd-title').textContent = video.title || 'Video';
-    const sb = document.getElementById('vd-status-badge');
-    sb.textContent = video.status; sb.className = `badge ${video.status}`;
-    const stb = document.getElementById('vd-stream-badge');
-    stb.textContent = video.stream || '—'; stb.className = `badge ${video.stream || ''}`;
-    const fbDisplay = document.getElementById('vd-feedback-display');
-    if (video.feedback) { fbDisplay.classList.remove('hidden'); document.getElementById('vd-feedback-text').textContent = video.feedback; }
-    else { fbDisplay.classList.add('hidden'); }
-    const scripts = video.scripts || [];
-    document.getElementById('vd-scripts-section').innerHTML = scripts.length > 0
-      ? scripts.map(s => `<div class="script-block"><div class="script-label">${esc(s.variant)}</div><pre class="script-body">${esc(s.body || '')}</pre></div>`).join('')
-      : '<p class="empty">No scripts yet.</p>';
-    document.getElementById('vd-force-status').value = '';
-    document.getElementById('vd-feedback-input').value = '';
-    const approveBtn = document.getElementById('vd-approve-btn');
-    approveBtn.disabled = video.status !== 'QC';
-    approveBtn.title = video.status !== 'QC' ? 'Video must be in QC status to approve' : '';
-    dlg.showModal();
-  } catch (e) { toast('Could not load video: ' + e.message, 'error'); }
-}
-
-async function doApprove() {
-  if (!_currentVideoId) return;
-  try {
-    await api('POST', `/videos/${_currentVideoId}/approve`);
-    toast('Video approved → SCHEDULED');
-    document.getElementById('video-dialog').close();
-    loadVideos();
-  } catch (e) { toast('Approve failed: ' + e.message, 'error'); }
-}
-
-async function doRequestChanges() {
-  if (!_currentVideoId) return;
-  const feedback = document.getElementById('vd-feedback-input').value.trim();
-  if (!feedback) { toast('Enter feedback first', 'error'); return; }
-  try {
-    await api('POST', `/videos/${_currentVideoId}/request-changes`, { feedback });
-    toast('Feedback sent');
-    document.getElementById('video-dialog').close();
-    loadVideos();
-  } catch (e) { toast('Error: ' + e.message, 'error'); }
-}
-
-async function doForceStatus() {
-  if (!_currentVideoId) return;
-  const status = document.getElementById('vd-force-status').value;
-  if (!status) { toast('Pick a stage first', 'error'); return; }
-  try {
-    await api('PUT', `/videos/${_currentVideoId}/status`, { status });
-    toast(`Status → ${status}`);
-    document.getElementById('video-dialog').close();
-    loadVideos();
-  } catch (e) { toast('Error: ' + e.message, 'error'); }
-}
-
-function openNewIdea() {
-  document.getElementById('idea-title').value = '';
-  document.getElementById('idea-stream').value = 'SHORT';
-  document.getElementById('new-idea-dialog').showModal();
-}
-
-async function saveNewIdea() {
-  const title = document.getElementById('idea-title').value.trim();
-  if (!title) { toast('Title is required', 'error'); return; }
-  const stream = document.getElementById('idea-stream').value;
-  try {
-    await api('POST', '/ideas/save', { title, stream });
-    toast('Idea saved!');
-    document.getElementById('new-idea-dialog').close();
-    loadVideos();
-  } catch (e) { toast('Error: ' + e.message, 'error'); }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// TAB 3: INGREDIENTS
-// ════════════════════════════════════════════════════════════════════════════
-let _editingIngredientId = null;
-
-async function loadIngredients() {
-  const tbody = document.querySelector('#ingredients-table tbody');
-  try {
-    const ingredients = await api('GET', '/armand/ingredients');
-    State.set('ingredients', ingredients);
-    renderIngredientsTable(ingredients);
-  } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="5" class="loading">Could not load: ${esc(e.message)}</td></tr>`;
-  }
-}
-
-function renderIngredientsTable(ingredients) {
-  const tbody = document.querySelector('#ingredients-table tbody');
-  if (!ingredients || ingredients.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty cell-pad">No ingredients yet.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = ingredients.map(ing => `
-    <tr>
-      <td>${esc(ing.name)}</td>
-      <td>${esc(ing.category || '—')}</td>
-      <td>${esc(ing.unit || '—')}</td>
-      <td>${ing.avg_price_per_unit != null ? '$' + Number(ing.avg_price_per_unit).toFixed(2) : '—'}</td>
-      <td><div class="td-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openEditIngredient('${ing.id}')">Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteIngredient('${ing.id}', '${esc(ing.name)}')">Delete</button>
-      </div></td>
-    </tr>`).join('');
-}
-
-function openAddIngredient() {
-  _editingIngredientId = null;
-  document.getElementById('ing-dialog-title').textContent = 'Add ingredient';
-  ['ing-name','ing-category','ing-unit','ing-price'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('ingredient-dialog').showModal();
-}
-
-function openEditIngredient(id) {
-  const ing = (State.get('ingredients') || []).find(i => i.id === id);
-  if (!ing) return;
-  _editingIngredientId = id;
-  document.getElementById('ing-dialog-title').textContent = 'Edit ingredient';
-  document.getElementById('ing-name').value = ing.name || '';
-  document.getElementById('ing-category').value = ing.category || '';
-  document.getElementById('ing-unit').value = ing.unit || '';
-  document.getElementById('ing-price').value = ing.avg_price_per_unit != null ? ing.avg_price_per_unit : '';
-  document.getElementById('ingredient-dialog').showModal();
-}
-
-async function saveIngredient() {
-  const name = document.getElementById('ing-name').value.trim();
-  if (!name) { toast('Name is required', 'error'); return; }
-  const priceVal = document.getElementById('ing-price').value;
-  const body = {
-    name,
-    category: document.getElementById('ing-category').value.trim() || null,
-    unit:     document.getElementById('ing-unit').value.trim() || null,
-    avg_price_per_unit: priceVal !== '' ? parseFloat(priceVal) : null,
-  };
-  try {
-    if (_editingIngredientId) { await api('PUT', `/armand/ingredients/${_editingIngredientId}`, body); toast('Ingredient updated'); }
-    else { await api('POST', '/armand/ingredients', body); toast('Ingredient added'); }
-    document.getElementById('ingredient-dialog').close();
-    loadIngredients();
-  } catch (e) { toast('Error: ' + e.message, 'error'); }
-}
-
-async function deleteIngredient(id, name) {
-  const ok = await confirmDialog('Delete ingredient', `Delete "${name}"? This cannot be undone.`);
-  if (!ok) return;
-  try {
-    await api('DELETE', `/armand/ingredients/${id}`);
-    toast('Ingredient deleted');
-    loadIngredients();
-  } catch (e) { toast('Error: ' + e.message, 'error'); }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// TAB 4: RECIPES
-// ════════════════════════════════════════════════════════════════════════════
-let _editingRecipeId = null;
-let _recipeStream    = null;
-let _recipeDiff      = null;
-
-function selectStream(val) {
-  _recipeStream = val || null;
-  document.querySelectorAll('.stream-pill').forEach(b => b.classList.toggle('active', b.dataset.val === val));
-}
-
-function selectDiff(val) {
-  // clicking the active level clears it
-  _recipeDiff = _recipeDiff === val ? null : val;
-  document.querySelectorAll('.diff-dot').forEach((dot, i) => dot.classList.toggle('filled', _recipeDiff && (i + 1) <= _recipeDiff));
-}
-
-function updateRecipeEmoji() {
-  const title = document.getElementById('recipe-title').value;
-  const el = document.getElementById('recipe-form-emoji');
-  const emoji = recipeEmoji(title);
-  if (el.textContent !== emoji) {
-    el.style.transform = 'scale(1.3)';
-    el.textContent = emoji;
-    setTimeout(() => el.style.transform = '', 200);
-  }
-}
-
-async function loadRecipes() {
-  const grid = document.getElementById('recipes-grid');
-  grid.innerHTML = '<p class="loading">Loading…</p>';
-  try {
-    const [recipes, ingredients] = await Promise.all([
-      api('GET', '/armand/recipes'),
-      api('GET', '/armand/ingredients'),
-    ]);
-    State.set('recipes', recipes);
-    State.set('ingredients', ingredients);
-    renderRecipeCards(recipes);
-  } catch (e) {
-    grid.innerHTML = `<p class="loading">Could not load: ${esc(e.message)}</p>`;
-  }
-}
-
-function renderRecipeCards(recipes) {
-  const grid = document.getElementById('recipes-grid');
-  if (!recipes || recipes.length === 0) {
-    grid.innerHTML = '<p class="empty">No recipes yet. Hit "+ New recipe" to create your first one.</p>';
-    return;
-  }
-  grid.innerHTML = recipes.map(r => {
-    const emoji = recipeEmoji(r.title);
-    const diffDots = [1,2,3,4,5].map(i =>
-      `<span class="diff-dot-sm ${r.difficulty && i <= r.difficulty ? 'on' : ''}"></span>`).join('');
-    const ings = (r.ingredients || []).slice(0, 7).map(i => {
-      const e = ingredientEmoji(i.name || i.ingredient_name || '');
-      const label = esc(i.name || i.ingredient_name || '');
-      return `<span class="recipe-card-ing" title="${label}">${e}</span>`;
-    }).join('');
-    const hasMeta = r.difficulty != null || r.time_required_minutes != null;
-    return `<div class="recipe-card">
-      <div class="recipe-card-top">
-        <span class="recipe-card-emoji">${emoji}</span>
-        ${r.stream ? `<span class="badge ${r.stream}">${r.stream}</span>` : ''}
-      </div>
-      <div class="recipe-card-name">${esc(r.title)}</div>
-      ${hasMeta ? `<div class="recipe-card-meta">
-        ${r.difficulty != null ? `<div class="diff-dots-display">${diffDots}</div>` : ''}
-        ${r.difficulty != null && r.time_required_minutes != null ? '<span class="recipe-card-sep">·</span>' : ''}
-        ${r.time_required_minutes != null ? `<span class="recipe-card-time">${r.time_required_minutes} min</span>` : ''}
-      </div>` : ''}
-      ${ings ? `<div class="recipe-card-ings">${ings}</div>` : ''}
-      <div class="recipe-card-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openEditRecipe('${r.id}')">Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteRecipe('${r.id}', '${esc(r.title)}')">Delete</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function buildIngredientChecklist(selectedIds) {
-  const ingredients = State.get('ingredients') || [];
-  const el = document.getElementById('recipe-ing-checklist');
-  if (ingredients.length === 0) {
-    el.innerHTML = `<span class="check-empty">No ingredients yet — <a class="link" href="#" onclick="switchTab('ingredients')">add some →</a></span>`;
-    return;
-  }
-  el.innerHTML = ingredients.map(ing => {
-    const sel = selectedIds && selectedIds.find(s => s.ingredient_id === ing.id);
-    const emoji = ingredientEmoji(ing.name);
-    return `<label>
-      <input type="checkbox" value="${ing.id}" ${sel ? 'checked' : ''} class="rec-ing-check">
-      <span class="ing-emoji">${emoji}</span>
-      <span class="ing-check-label">${esc(ing.name)}</span>
-      <input type="number" class="rec-ing-qty" data-id="${ing.id}" value="${sel ? sel.qty : ''}" placeholder="qty" min="0" step="0.01">
-    </label>`;
-  }).join('');
-}
-
-function _resetRecipeForm() {
-  document.getElementById('recipe-title').value = '';
-  document.getElementById('recipe-form-emoji').textContent = '🍽️';
-  document.getElementById('recipe-time').value = '';
-  selectStream('');
-  _recipeDiff = null;
-  document.querySelectorAll('.diff-dot').forEach(d => d.classList.remove('filled'));
-}
-
-function openAddRecipe() {
-  _editingRecipeId = null;
-  document.getElementById('recipe-dialog-title').textContent = 'New recipe';
-  _resetRecipeForm();
-  buildIngredientChecklist([]);
-  document.getElementById('recipe-dialog').showModal();
-}
-
-async function openEditRecipe(id) {
-  try {
-    const recipe = await api('GET', `/armand/recipes/${id}`);
-    _editingRecipeId = id;
-    document.getElementById('recipe-dialog-title').textContent = 'Edit recipe';
-    _resetRecipeForm();
-    document.getElementById('recipe-title').value = recipe.title || '';
-    document.getElementById('recipe-form-emoji').textContent = recipeEmoji(recipe.title);
-    document.getElementById('recipe-time').value = recipe.time_required_minutes != null ? recipe.time_required_minutes : '';
-    selectStream(recipe.stream || '');
-    if (recipe.difficulty) {
-      _recipeDiff = recipe.difficulty;
-      document.querySelectorAll('.diff-dot').forEach((dot, i) => dot.classList.toggle('filled', (i + 1) <= _recipeDiff));
-    }
-    const selIds = (recipe.ingredients || []).map(i => ({ ingredient_id: i.ingredient_id || i.id, qty: i.qty }));
-    buildIngredientChecklist(selIds);
-    document.getElementById('recipe-dialog').showModal();
-  } catch (e) { toast('Error: ' + e.message, 'error'); }
-}
-
-async function saveRecipe() {
-  const title = document.getElementById('recipe-title').value.trim();
-  if (!title) { toast('Recipe name is required', 'error'); return; }
-  const checks = document.querySelectorAll('.rec-ing-check:checked');
-  const ingredients = Array.from(checks).map(cb => {
-    const qtyEl = document.querySelector(`.rec-ing-qty[data-id="${cb.value}"]`);
-    return { ingredient_id: cb.value, qty: qtyEl && qtyEl.value ? parseFloat(qtyEl.value) : null };
-  });
-  const body = {
-    title,
-    stream: _recipeStream || null,
-    difficulty: _recipeDiff || null,
-    time_required_minutes: document.getElementById('recipe-time').value ? parseInt(document.getElementById('recipe-time').value) : null,
-    ingredients,
-  };
-  try {
-    if (_editingRecipeId) { await api('PUT', `/armand/recipes/${_editingRecipeId}`, body); toast('Recipe updated'); }
-    else { await api('POST', '/armand/recipes', body); toast('Recipe created'); }
-    document.getElementById('recipe-dialog').close();
-    loadRecipes();
-  } catch (e) { toast('Error: ' + e.message, 'error'); }
-}
-
-async function deleteRecipe(id, title) {
-  const ok = await confirmDialog('Delete recipe', `Delete "${title}"? This cannot be undone.`);
-  if (!ok) return;
-  try {
-    await api('DELETE', `/armand/recipes/${id}`);
-    toast('Recipe deleted');
-    loadRecipes();
-  } catch (e) { toast('Error: ' + e.message, 'error'); }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// TAB 5: GROCERY PLANNER
-// ════════════════════════════════════════════════════════════════════════════
-let _groceryWeek = thisMonday();
-let _groceryListData = null;
-
-function loadGroceryTab() {
-  const input = document.getElementById('grocery-week-input');
-  input.value = _groceryWeek;
-  document.getElementById('grocery-week-label').textContent = _groceryWeek;
-  loadGroceryRecipeChecklist();
-}
-
-function onGroceryWeekChange() {
-  _groceryWeek = document.getElementById('grocery-week-input').value;
-  document.getElementById('grocery-week-label').textContent = _groceryWeek;
-  loadGroceryList();
-}
-
-async function loadGroceryRecipeChecklist() {
-  const el = document.getElementById('recipe-checklist');
-  try {
-    const recipes = await api('GET', '/armand/recipes');
-    State.set('recipes', recipes);
-    if (!recipes || recipes.length === 0) {
-      el.innerHTML = `<span class="check-empty">No recipes yet — <a class="link" href="#" onclick="switchTab('recipes')">add one →</a></span>`;
-      return;
-    }
-    el.innerHTML = recipes.map(r =>
-      `<label>
-        <input type="checkbox" class="grocery-recipe-check" value="${r.id}" onchange="onGroceryRecipeChange()">
-        <span class="ing-check-label">${esc(r.title)}</span>
-        ${r.stream ? `<span class="badge badge-shrink ${r.stream}">${r.stream}</span>` : ''}
-       </label>`).join('');
-  } catch (e) {
-    el.innerHTML = '<span class="check-empty">Could not load recipes.</span>';
-  }
-}
-
-async function onGroceryRecipeChange() {
-  const checked = Array.from(document.querySelectorAll('.grocery-recipe-check:checked')).map(c => c.value);
-  const downloadBtn = document.getElementById('grocery-download-btn');
-  if (checked.length === 0) {
-    document.getElementById('grocery-list-body').innerHTML = '<p class="empty">Select recipes to generate list.</p>';
-    document.getElementById('grocery-budget-bar-wrap').classList.add('hidden');
-    _groceryListData = null;
-    downloadBtn.disabled = true;
-    return;
-  }
-  try {
-    const result = await api('POST', '/armand/plan', { recipe_ids: checked, week_id: _groceryWeek });
-    loadGroceryList();
-    const pct = result.budget_pct != null ? Math.min(100, result.budget_pct) : 0;
-    const cls = pct > 100 ? 'over' : pct > 80 ? 'warn' : '';
-    document.getElementById('grocery-budget-bar-wrap').classList.remove('hidden');
-    document.getElementById('grocery-budget-label').textContent = `$${(result.planned_spend || 0).toFixed(2)} / $${(result.budget_limit || 0).toFixed(2)}`;
-    const fill = document.getElementById('grocery-budget-fill');
-    fill.style.width = pct.toFixed(1) + '%';
-    fill.className = `budget-bar-fill ${cls}`;
-  } catch (e) { toast('Plan error: ' + e.message, 'error'); }
-}
-
-async function loadGroceryList() {
-  const el = document.getElementById('grocery-list-body');
-  const downloadBtn = document.getElementById('grocery-download-btn');
-  try {
-    const d = await api('GET', `/armand/grocery-list/${_groceryWeek}`);
-    _groceryListData = d;
-    if (!d.items || d.items.length === 0) {
-      el.innerHTML = '<p class="empty">No items needed.</p>';
-      downloadBtn.disabled = true;
-      return;
-    }
-    el.innerHTML = d.items.map(i =>
-      `<div class="grocery-item"><span>${esc(i.name)} <small class="item-qty">${i.to_buy} ${i.unit || ''}</small></span><span>$${i.estimated_cost.toFixed(2)}</span></div>`
-    ).join('') + `<div class="stat stat--total">Total <span>$${d.total_estimated_cost.toFixed(2)}</span></div>`;
-    downloadBtn.disabled = false;
-  } catch (e) {
-    el.innerHTML = '<p class="empty">No list yet.</p>';
-    downloadBtn.disabled = true;
-  }
-}
-
-function downloadGroceryList() {
-  if (!_groceryListData || !_groceryListData.items || _groceryListData.items.length === 0) { toast('No list to download', 'error'); return; }
-  const lines = [
-    `Grocery list — week of ${_groceryWeek}`, '='.repeat(40),
-    ...(_groceryListData.items || []).map(i => `${i.name}: ${i.to_buy} ${i.unit || ''} (~$${i.estimated_cost.toFixed(2)})`),
-    '', `Total: $${_groceryListData.total_estimated_cost.toFixed(2)}`,
-  ];
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain' }));
-  a.download = `grocery-${_groceryWeek}.txt`;
-  a.click();
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// TAB 6: ANALYTICS
-// ════════════════════════════════════════════════════════════════════════════
-let _chartLoaded = false;
-let _chartInstance = null;
-
-async function loadAnalytics() {
-  const tbody = document.querySelector('#analytics-table tbody');
-  tbody.innerHTML = '<tr><td colspan="6" class="loading cell-pad">Loading…</td></tr>';
-  try {
-    const videos = await api('GET', '/videos');
-    const rows = [], chartLabels = [], chartData = [];
-    for (const v of (videos || [])) {
-      try {
-        const metrics = await api('GET', `/etienne/metrics/${v.id}`);
-        (metrics.metrics || []).forEach(m => {
-          rows.push({ title: v.title, platform: m.platform, views: m.views, retention_pct: m.retention_pct, watch_time_seconds: m.watch_time_seconds, likes: m.likes });
-          chartLabels.push(v.title.slice(0, 20) + (v.title.length > 20 ? '…' : ''));
-          chartData.push(m.views || 0);
-        });
-      } catch (_) {}
-    }
-    if (rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty cell-pad">No metrics recorded yet. Run the pipeline to generate video data.</td></tr>';
-      document.getElementById('analytics-chart-wrap').classList.add('hidden');
-      return;
-    }
-    tbody.innerHTML = rows.map(r => `<tr>
-      <td>${esc(r.title)}</td><td>${esc(r.platform || '—')}</td>
-      <td>${(r.views || 0).toLocaleString()}</td>
-      <td>${r.retention_pct != null ? r.retention_pct.toFixed(1) + '%' : '—'}</td>
-      <td>${r.watch_time_seconds != null ? fmtDuration(r.watch_time_seconds) : '—'}</td>
-      <td>${(r.likes || 0).toLocaleString()}</td>
-    </tr>`).join('');
-    await ensureChartJs();
-    document.getElementById('analytics-chart-wrap').classList.remove('hidden');
-    const css = getComputedStyle(document.documentElement);
-    const accent = css.getPropertyValue('--accent').trim();
-    const muted  = css.getPropertyValue('--muted').trim();
-    const border = css.getPropertyValue('--border').trim();
-    const ctx = document.getElementById('analytics-chart').getContext('2d');
-    if (_chartInstance) _chartInstance.destroy();
-    _chartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: chartLabels, datasets: [{ label: 'Views', data: chartData, backgroundColor: accent, borderRadius: 4 }] },
-      options: { responsive: true, plugins: { legend: { display: false } }, scales: {
-        x: { ticks: { color: muted }, grid: { color: border } },
-        y: { ticks: { color: muted }, grid: { color: border } },
-      }},
-    });
-  } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="6" class="loading cell-pad">Error: ${esc(e.message)}</td></tr>`;
-  }
-}
-
-function ensureChartJs() {
-  if (_chartLoaded) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js';
-    s.onload = () => { _chartLoaded = true; resolve(); };
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-
-function fmtDuration(seconds) {
-  const m = Math.floor(seconds / 60), s = seconds % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// TAB 7: AGENTS
-// ════════════════════════════════════════════════════════════════════════════
-function loadAgents() { loadAgentCosts(); loadAgentSlos(); loadAgentLatency(); }
-
-async function loadAgentCosts() {
-  const el = document.getElementById('agents-cost-card');
-  try {
-    const d = await api('GET', '/observability/costs');
-    const total = d.total_cost_usd || 0;
-    const agents = (d.by_agent || []).sort((a, b) => b.cost_usd - a.cost_usd);
-    const maxCost = agents.reduce((m, a) => Math.max(m, a.cost_usd), 0.0001);
-    const rows = agents.length > 0
-      ? agents.map(a => {
-          const pct = Math.round((a.cost_usd / maxCost) * 100);
-          return `<div class="agent-bar-row">
-            <div class="agent-bar-label">${esc(a.agent)}</div>
-            <div class="agent-bar-track"><div class="agent-bar-fill" style="width:${pct}%"></div></div>
-            <div class="agent-bar-cost agent-bar-cost-detail"><div>$${a.cost_usd.toFixed(4)}</div><div class="agent-call-count">${a.call_count} calls</div></div>
-          </div>`;
-        }).join('')
-      : '<p class="empty">No calls recorded yet.</p>';
-    el.innerHTML = `<div class="card-title">LLM cost this week (by agent)</div><div class="stat stat--spaced">Total <span>$${total.toFixed(4)}</span></div>${rows}`;
-  } catch (e) { el.innerHTML = '<div class="card-title">LLM cost this week</div><p class="loading">Could not load.</p>'; }
-}
-
-async function loadAgentSlos() {
-  const el = document.getElementById('agents-slo-card');
-  try {
-    const slos = await api('GET', '/observability/slo');
-    const rows = slos.map(s => {
-      const cls = s.passing ? 'pass' : 'fail';
-      const val = s.current_value != null
-        ? (typeof s.current_value === 'number' ? s.current_value.toLocaleString(undefined, { maximumFractionDigits: 1 }) : s.current_value)
-        : '—';
-      const unit = s.unit === 'percent' ? '%' : s.unit === 'ms' ? ' ms' : s.unit === 'usd' ? ' USD' : ` ${s.unit}`;
-      return `<div class="slo-row"><div class="slo-dot ${cls}"></div><div class="slo-desc">${esc(s.description)}</div><div class="slo-val">${val}${unit}</div></div>`;
-    }).join('');
-    el.innerHTML = `<div class="card-title">SLO status</div>${rows || '<p class="empty">No SLOs configured.</p>'}`;
-  } catch (e) { el.innerHTML = '<div class="card-title">SLO status</div><p class="loading">Could not load.</p>'; }
-}
-
-async function loadAgentLatency() {
-  const el = document.getElementById('agents-latency-card');
-  try {
-    const d = await api('GET', '/observability/latency');
-    const endpoints = d.by_endpoint || [];
-    if (endpoints.length === 0) { el.innerHTML = '<div class="card-title">Request latency</div><p class="empty">No requests recorded yet.</p>'; return; }
-    const rows = endpoints.sort((a, b) => (b.avg_ms || 0) - (a.avg_ms || 0)).slice(0, 10).map(ep =>
-      `<div class="stat"><span class="endpoint-label">${esc(ep.endpoint)}</span><span>${(ep.avg_ms || 0).toFixed(0)} ms</span></div>`).join('');
-    el.innerHTML = `<div class="card-title">Request latency (top 10 slowest)</div>${rows}`;
-  } catch (e) { el.innerHTML = '<div class="card-title">Request latency</div><p class="loading">Could not load.</p>'; }
-}
+window.addEventListener('beforeunload', () => {
+  clearInterval(pollInterval)
+  cancelAnimationFrame(rafId)
+})
 </script>
 </body>
 </html>

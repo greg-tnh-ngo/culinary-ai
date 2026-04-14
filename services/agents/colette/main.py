@@ -6,14 +6,12 @@ from services.shared.db import _cfg
 
 _log = logging.getLogger(__name__)
 try:
-    import anthropic as _anthropic_mod
-    _API_KEY = _cfg.ANTHROPIC_API_KEY
-    _LLM_AVAILABLE = bool(_API_KEY)
-    _CLIENT = _anthropic_mod.Anthropic(api_key=_API_KEY) if _LLM_AVAILABLE else None
+    from services.shared.llm_client import get_llm as _get_llm
     from services.shared.llm_tracker import tracked_create as _tracked_create
-except ImportError:
-    _LLM_AVAILABLE = False
-    _CLIENT = None
+    _CLIENT, _MODEL = _get_llm("colette")
+    _LLM_AVAILABLE = _CLIENT is not None
+except Exception:
+    _CLIENT, _MODEL, _LLM_AVAILABLE = None, "claude-sonnet-4-6", False
     _tracked_create = None
 
 
@@ -96,7 +94,7 @@ def _make_release_packet_llm(
         f"Shoot card props: {json.dumps(shoot_card.get('props', []))}"
     )
     qc_msg = _tracked_create(_CLIENT, "colette/qc",
-        model="claude-sonnet-4-6",
+        model=_MODEL,
         max_tokens=2048,
         system=_QC_SYSTEM,
         messages=[{"role": "user", "content": qc_user}],
@@ -113,7 +111,7 @@ def _make_release_packet_llm(
     assets: List[PlatformAsset] = []
     if qc.overall_pass:
         assets_msg = _tracked_create(_CLIENT, "colette/assets",
-            model="claude-sonnet-4-6",
+            model=_MODEL,
             max_tokens=2048,
             system=_ASSETS_SYSTEM,
             messages=[{"role": "user", "content": f"Script:\n{body[:1200]}"}],

@@ -7,13 +7,13 @@ from services.shared.db import _cfg
 
 _log = logging.getLogger(__name__)
 try:
-    import anthropic as _anthropic_mod
-    _API_KEY = _cfg.ANTHROPIC_API_KEY
-    _LLM_AVAILABLE = bool(_API_KEY)
-    _CLIENT = _anthropic_mod.Anthropic(api_key=_API_KEY) if _LLM_AVAILABLE else None
-except ImportError:
-    _LLM_AVAILABLE = False
-    _CLIENT = None
+    from services.shared.llm_client import get_llm as _get_llm
+    _CLIENT, _MODEL = _get_llm("armand")                        # sonnet-tier: budget advice
+    _CLIENT_FAST, _MODEL_FAST = _get_llm("armand", tier="fast") # haiku-tier: grocery list
+    _LLM_AVAILABLE = _CLIENT is not None
+except Exception:
+    _CLIENT, _MODEL, _LLM_AVAILABLE = None, "claude-sonnet-4-6", False
+    _CLIENT_FAST, _MODEL_FAST = None, "claude-haiku-4-5-20251001"
 
 try:
     from PIL import Image
@@ -156,7 +156,7 @@ def _suggest_swaps_llm(recipe_costs: List[RecipeCost], budget_limit: float, tota
         return []
     try:
         msg = _CLIENT.messages.create(
-            model="claude-sonnet-4-6-20251101",
+            model=_MODEL,
             max_tokens=512,
             system=(
                 "You are Armand, budget manager for a solo French cooking channel. "
@@ -278,8 +278,8 @@ def ingest_receipt(image_bytes: bytes, store: str = "unknown") -> ReceiptResult:
 
 def _parse_receipt_llm(raw_text: str) -> List[ReceiptItem]:
     try:
-        msg = _CLIENT.messages.create(
-            model="claude-haiku-4-5-20251001",
+        msg = _CLIENT_FAST.messages.create(
+            model=_MODEL_FAST,
             max_tokens=1024,
             system=(
                 "You are a receipt parser for a French cooking channel based in Montréal, Québec.\n\n"

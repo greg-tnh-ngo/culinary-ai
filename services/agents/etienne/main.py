@@ -7,13 +7,11 @@ from services.shared.db import _cfg
 
 _log = logging.getLogger(__name__)
 try:
-    import anthropic as _anthropic_mod
-    _API_KEY = _cfg.ANTHROPIC_API_KEY
-    _LLM_AVAILABLE = bool(_API_KEY)
-    _CLIENT = _anthropic_mod.Anthropic(api_key=_API_KEY) if _LLM_AVAILABLE else None
-except ImportError:
-    _LLM_AVAILABLE = False
-    _CLIENT = None
+    from services.shared.llm_client import get_llm as _get_llm
+    _CLIENT, _MODEL = _get_llm("etienne")
+    _LLM_AVAILABLE = _CLIENT is not None
+except Exception:
+    _CLIENT, _MODEL, _LLM_AVAILABLE = None, "claude-haiku-4-5-20251001", False
 
 
 class VideoStat(BaseModel):
@@ -136,7 +134,7 @@ def _generate_insights_llm(
     )
     try:
         msg = _CLIENT.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=_MODEL,
             max_tokens=1024,
             system=_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_content}],
